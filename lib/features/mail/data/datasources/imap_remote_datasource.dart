@@ -129,27 +129,35 @@ class ImapRemoteDataSource {
       return [];
     }
 
-    // Build fetch sequence
-    MessageSequence sequence;
-    if (sinceUid != null && sinceUid > 0) {
-      // Fetch messages newer than sinceUid
-      sequence = MessageSequence.fromRange(
-        sinceUid + 1,
-        mailbox.uidNext ?? (sinceUid + 1000),
-        isUidSequence: true,
-      );
-    } else {
-      // Fetch latest messages
-      final start =
-          mailbox.messagesExists > limit ? mailbox.messagesExists - limit : 1;
-      sequence = MessageSequence.fromRange(start, mailbox.messagesExists);
-    }
-
     try {
-      final fetchResult = await _client!.fetchMessages(
-        sequence,
-        '(UID FLAGS ENVELOPE BODYSTRUCTURE BODY.PEEK[TEXT])',
-      );
+      FetchImapResult fetchResult;
+
+      if (sinceUid != null && sinceUid > 0) {
+        // Incremental sync: Fetch messages with UID greater than sinceUid
+        final uidNext = mailbox.uidNext ?? (sinceUid + 1000);
+        if (sinceUid >= uidNext - 1) {
+          // No new messages
+          return [];
+        }
+        final sequence = MessageSequence.fromRange(
+          sinceUid + 1,
+          uidNext - 1,
+          isUidSequence: true,
+        );
+        fetchResult = await _client!.uidFetchMessages(
+          sequence,
+          '(UID FLAGS ENVELOPE BODYSTRUCTURE BODY.PEEK[TEXT])',
+        );
+      } else {
+        // Full sync: Fetch latest messages by sequence number
+        final start =
+            mailbox.messagesExists > limit ? mailbox.messagesExists - limit + 1 : 1;
+        final sequence = MessageSequence.fromRange(start, mailbox.messagesExists);
+        fetchResult = await _client!.fetchMessages(
+          sequence,
+          '(UID FLAGS ENVELOPE BODYSTRUCTURE BODY.PEEK[TEXT])',
+        );
+      }
 
       final messages = <EmailMessageModel>[];
       for (final result in fetchResult.messages) {
@@ -161,6 +169,7 @@ class ImapRemoteDataSource {
 
       // Sort by date descending
       messages.sort((a, b) => b.date.compareTo(a.date));
+      _logger.d('Fetched ${messages.length} messages from $mailboxPath');
       return messages;
     } catch (e) {
       _logger.e('Error fetching messages: $e');
