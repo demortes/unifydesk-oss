@@ -233,7 +233,7 @@ class _OAuthPageState extends ConsumerState<OAuthPage> {
                           )
                         : const Icon(Icons.login),
                     label: Text(
-                        _isLoading ? 'Signing in...' : 'Sign in with Google'),
+                        _isLoading ? 'Signing in...' : 'Sign in with Google',),
                   ),
                 ),
               ],

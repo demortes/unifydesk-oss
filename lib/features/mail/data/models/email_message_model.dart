@@ -150,7 +150,7 @@ class EmailMessageModel extends EmailMessage {
           .map((a) => {
                 'address': a.address,
                 'name': a.displayName,
-              })
+              },)
           .toList(),
     );
   }

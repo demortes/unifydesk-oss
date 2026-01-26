@@ -36,7 +36,7 @@ class ImapRemoteDataSource {
     }
 
     final imapConfig = account.effectiveImapConfig;
-    _client = ImapClient(isLogEnabled: false);
+    _client = ImapClient();
 
     try {
       await _client!.connectToServer(
@@ -92,7 +92,6 @@ class ImapRemoteDataSource {
             delimiter: mb.pathSeparator,
             flags: mb.flags.map((f) => f.toString()).toList(),
             isSelectable: !mb.isNotSelectable,
-            isSubscribed: true,
           ),
         )
         .toList();
@@ -108,7 +107,7 @@ class ImapRemoteDataSource {
     final mailbox = await _client!.selectMailboxByPath(mailboxPath);
     return (
       total: mailbox.messagesExists,
-      unread: mailbox.messagesUnseen ?? 0,
+      unread: mailbox.messagesUnseen,
     );
   }
 
@@ -350,7 +349,7 @@ class ImapRemoteDataSource {
         }
 
         _logger.d(
-            'Parsed body - HTML: ${htmlBody?.length ?? 0} chars, Text: ${textBody?.length ?? 0} chars');
+            'Parsed body - HTML: ${htmlBody?.length ?? 0} chars, Text: ${textBody?.length ?? 0} chars',);
       } else {
         // Just get a preview
         final plainText =

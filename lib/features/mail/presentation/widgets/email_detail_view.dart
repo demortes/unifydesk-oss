@@ -193,7 +193,7 @@ class EmailDetailView extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     // Debug info
     debugPrint(
-        'Email body - HTML: ${email.htmlBody?.length ?? 0}, Text: ${email.textBody?.length ?? 0}');
+        'Email body - HTML: ${email.htmlBody?.length ?? 0}, Text: ${email.textBody?.length ?? 0}',);
 
     // Prefer HTML body if available
     if (email.htmlBody != null && email.htmlBody!.isNotEmpty) {
@@ -248,23 +248,23 @@ class EmailDetailView extends StatelessWidget {
   String _stripHtmlTags(String html) {
     // Remove style and script blocks entirely
     var result = html.replaceAll(
-        RegExp(r'<style[^>]*>.*?</style>', caseSensitive: false, dotAll: true),
-        '');
+        RegExp('<style[^>]*>.*?</style>', caseSensitive: false, dotAll: true),
+        '',);
     result = result.replaceAll(
-        RegExp(r'<script[^>]*>.*?</script>',
-            caseSensitive: false, dotAll: true),
-        '');
+        RegExp('<script[^>]*>.*?</script>',
+            caseSensitive: false, dotAll: true,),
+        '',);
 
     // Replace common block elements with newlines
     result =
         result.replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n');
-    result = result.replaceAll(RegExp(r'</p>', caseSensitive: false), '\n\n');
-    result = result.replaceAll(RegExp(r'</div>', caseSensitive: false), '\n');
-    result = result.replaceAll(RegExp(r'</tr>', caseSensitive: false), '\n');
-    result = result.replaceAll(RegExp(r'</li>', caseSensitive: false), '\n');
+    result = result.replaceAll(RegExp('</p>', caseSensitive: false), '\n\n');
+    result = result.replaceAll(RegExp('</div>', caseSensitive: false), '\n');
+    result = result.replaceAll(RegExp('</tr>', caseSensitive: false), '\n');
+    result = result.replaceAll(RegExp('</li>', caseSensitive: false), '\n');
 
     // Remove all remaining HTML tags
-    result = result.replaceAll(RegExp(r'<[^>]+>'), '');
+    result = result.replaceAll(RegExp('<[^>]+>'), '');
 
     // Decode common HTML entities
     result = result
@@ -312,7 +312,7 @@ class _HtmlBodyView extends StatelessWidget {
     // Clean up email HTML for flutter_html compatibility
     final cleanedHtml = _cleanEmailHtml(html);
     debugPrint(
-        'Cleaned HTML: ${cleanedHtml.length} chars (from ${html.length})');
+        'Cleaned HTML: ${cleanedHtml.length} chars (from ${html.length})',);
 
     // Render HTML with flutter_html
     return Html(
@@ -354,7 +354,7 @@ class _HtmlBodyView extends StatelessWidget {
 
     // Remove DOCTYPE
     result =
-        result.replaceAll(RegExp(r'<!DOCTYPE[^>]*>', caseSensitive: false), '');
+        result.replaceAll(RegExp('<!DOCTYPE[^>]*>', caseSensitive: false), '');
 
     // Remove XML declarations
     result =
@@ -363,46 +363,46 @@ class _HtmlBodyView extends StatelessWidget {
     // Remove MS Office conditional comments and their content
     result = result.replaceAll(
       RegExp(r'<!--\[if[^\]]*\]>.*?<!\[endif\]-->',
-          caseSensitive: false, dotAll: true),
+          caseSensitive: false, dotAll: true,),
       '',
     );
     result = result.replaceAll(
       RegExp(r'<!--\[if[^\]]*\]>.*?<!endif-->',
-          caseSensitive: false, dotAll: true),
+          caseSensitive: false, dotAll: true,),
       '',
     );
 
     // Remove style blocks (flutter_html doesn't use them well anyway)
     result = result.replaceAll(
-      RegExp(r'<style[^>]*>.*?</style>', caseSensitive: false, dotAll: true),
+      RegExp('<style[^>]*>.*?</style>', caseSensitive: false, dotAll: true),
       '',
     );
 
     // Remove VML/Office namespaced elements
     result = result.replaceAll(
-        RegExp(r'<v:[^>]*>.*?</v:[^>]*>', caseSensitive: false, dotAll: true),
-        '');
+        RegExp('<v:[^>]*>.*?</v:[^>]*>', caseSensitive: false, dotAll: true),
+        '',);
     result = result.replaceAll(
-        RegExp(r'<o:[^>]*>.*?</o:[^>]*>', caseSensitive: false, dotAll: true),
-        '');
-    result = result.replaceAll(RegExp(r'<v:[^>]*/>', caseSensitive: false), '');
-    result = result.replaceAll(RegExp(r'<o:[^>]*/>', caseSensitive: false), '');
+        RegExp('<o:[^>]*>.*?</o:[^>]*>', caseSensitive: false, dotAll: true),
+        '',);
+    result = result.replaceAll(RegExp('<v:[^>]*/>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp('<o:[^>]*/>', caseSensitive: false), '');
 
     // Remove xmlns attributes that might confuse the parser
     result = result.replaceAll(RegExp(r'\s+xmlns[^=]*="[^"]*"'), '');
 
     // Remove mso-* style properties inline
-    result = result.replaceAll(RegExp(r'mso-[^;:"]+:[^;:"]+;?'), '');
+    result = result.replaceAll(RegExp('mso-[^;:"]+:[^;:"]+;?'), '');
 
     // Clean up head tag content (keep only title if present)
     result = result.replaceAll(
-      RegExp(r'<head[^>]*>.*?</head>', caseSensitive: false, dotAll: true),
+      RegExp('<head[^>]*>.*?</head>', caseSensitive: false, dotAll: true),
       '',
     );
 
     // Simplify the html tag
     result = result.replaceAll(
-      RegExp(r'<html[^>]*>', caseSensitive: false),
+      RegExp('<html[^>]*>', caseSensitive: false),
       '<html>',
     );
 
