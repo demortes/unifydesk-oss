@@ -134,7 +134,7 @@ linter:
     slash_for_doc_comments: true
     sort_child_properties_last: true
     sort_constructors_first: true
-    sort_pub_dependencies: true
+    sort_pub_dependencies: false
     sort_unnamed_constructors_first: true
     test_types_in_equals: true
     throw_in_finally: true

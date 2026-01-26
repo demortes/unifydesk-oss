@@ -12,14 +12,9 @@ import 'tables/mailboxes_table.dart';
 class AppDatabase {
   AppDatabase._();
 
-  static AppDatabase? _instance;
-  static Database? _database;
-
   /// Singleton instance of the database manager.
-  static AppDatabase get instance {
-    _instance ??= AppDatabase._();
-    return _instance!;
-  }
+  static final AppDatabase instance = AppDatabase._();
+  static Database? _database;
 
   /// Current database version for migrations.
   static const int _version = 2;
