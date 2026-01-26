@@ -96,7 +96,8 @@ class OnboardingState {
     bool clearProvider = false,
   }) {
     return OnboardingState(
-      selectedProvider: clearProvider ? null : (selectedProvider ?? this.selectedProvider),
+      selectedProvider:
+          clearProvider ? null : (selectedProvider ?? this.selectedProvider),
       email: email ?? this.email,
       password: password ?? this.password,
       displayName: displayName ?? this.displayName,
@@ -275,10 +276,14 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
       displayName: state.displayName.isNotEmpty ? state.displayName : null,
       providerType: provider,
       authType: isOAuth ? AuthType.oauth : AuthType.password,
-      imapHost: provider == MailProvider.custom ? state.imapHost : config?.imap.host,
-      imapPort: provider == MailProvider.custom ? state.imapPort : config?.imap.port,
-      smtpHost: provider == MailProvider.custom ? state.smtpHost : config?.smtp.host,
-      smtpPort: provider == MailProvider.custom ? state.smtpPort : config?.smtp.port,
+      imapHost:
+          provider == MailProvider.custom ? state.imapHost : config?.imap.host,
+      imapPort:
+          provider == MailProvider.custom ? state.imapPort : config?.imap.port,
+      smtpHost:
+          provider == MailProvider.custom ? state.smtpHost : config?.smtp.host,
+      smtpPort:
+          provider == MailProvider.custom ? state.smtpPort : config?.smtp.port,
       useSsl: state.useSsl,
       createdAt: DateTime.now(),
     );
@@ -287,4 +292,5 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
 
 /// Provider for onboarding state.
 final onboardingProvider =
-    NotifierProvider<OnboardingNotifier, OnboardingState>(OnboardingNotifier.new);
+    NotifierProvider<OnboardingNotifier, OnboardingState>(
+        OnboardingNotifier.new);

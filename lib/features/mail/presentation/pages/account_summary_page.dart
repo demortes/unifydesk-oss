@@ -38,7 +38,8 @@ class AccountSummaryPage extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                      color:
+                          colorScheme.primaryContainer.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
@@ -180,7 +181,9 @@ class _AccountListItem extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  account.authType.name == 'oauth' ? Icons.verified_user : Icons.lock,
+                  account.authType.name == 'oauth'
+                      ? Icons.verified_user
+                      : Icons.lock,
                   size: 14,
                   color: colorScheme.onSurfaceVariant,
                 ),

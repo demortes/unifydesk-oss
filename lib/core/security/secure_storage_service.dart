@@ -12,14 +12,15 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// - Linux: libsecret
 class SecureStorageService {
   SecureStorageService({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage(
-          aOptions: AndroidOptions(
-            encryptedSharedPreferences: true,
-          ),
-          iOptions: IOSOptions(
-            accessibility: KeychainAccessibility.first_unlock_this_device,
-          ),
-        );
+      : _storage = storage ??
+            const FlutterSecureStorage(
+              aOptions: AndroidOptions(
+                encryptedSharedPreferences: true,
+              ),
+              iOptions: IOSOptions(
+                accessibility: KeychainAccessibility.first_unlock_this_device,
+              ),
+            );
 
   final FlutterSecureStorage _storage;
 
@@ -124,7 +125,8 @@ class OAuthTokens {
   final DateTime expiresAt;
 
   /// Check if the access token is expired or about to expire.
-  bool get isExpired => DateTime.now().isAfter(expiresAt.subtract(const Duration(minutes: 5)));
+  bool get isExpired =>
+      DateTime.now().isAfter(expiresAt.subtract(const Duration(minutes: 5)));
 
   Map<String, dynamic> toJson() {
     return {

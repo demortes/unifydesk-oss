@@ -392,7 +392,8 @@ final selectedEmailProvider = FutureProvider<EmailMessage?>((ref) async {
 
   // Check if we already have full body content (HTML or full text, not just preview)
   final hasHtmlBody = email.htmlBody != null && email.htmlBody!.isNotEmpty;
-  final hasFullTextBody = email.textBody != null && email.textBody!.length > 200;
+  final hasFullTextBody =
+      email.textBody != null && email.textBody!.length > 200;
 
   if (hasHtmlBody || hasFullTextBody) {
     return email;

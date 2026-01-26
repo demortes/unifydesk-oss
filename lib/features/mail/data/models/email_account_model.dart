@@ -25,8 +25,10 @@ class EmailAccountModel {
       id: map[EmailAccountsTable.columnId] as String,
       email: map[EmailAccountsTable.columnEmail] as String,
       displayName: map[EmailAccountsTable.columnDisplayName] as String?,
-      providerType: _parseProvider(map[EmailAccountsTable.columnProviderType] as String),
-      authType: _parseAuthType(map[EmailAccountsTable.columnAuthType] as String),
+      providerType:
+          _parseProvider(map[EmailAccountsTable.columnProviderType] as String),
+      authType:
+          _parseAuthType(map[EmailAccountsTable.columnAuthType] as String),
       imapHost: map[EmailAccountsTable.columnImapHost] as String?,
       imapPort: map[EmailAccountsTable.columnImapPort] as int?,
       smtpHost: map[EmailAccountsTable.columnSmtpHost] as String?,

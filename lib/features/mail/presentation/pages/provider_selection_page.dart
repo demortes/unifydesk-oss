@@ -49,7 +49,9 @@ class ProviderSelectionPage extends ConsumerWidget {
                 providers: MailProviderConfigs.allProviders,
                 selectedProvider: state.selectedProvider,
                 onProviderSelected: (provider) {
-                  ref.read(onboardingProvider.notifier).selectProvider(provider);
+                  ref
+                      .read(onboardingProvider.notifier)
+                      .selectProvider(provider);
                   onProviderSelected(provider);
                 },
               ),
@@ -60,7 +62,8 @@ class ProviderSelectionPage extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  color:
+                      theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(

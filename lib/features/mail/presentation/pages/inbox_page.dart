@@ -54,7 +54,8 @@ class _InboxPageState extends ConsumerState<InboxPage> {
             onRemoveAccount: (id) => _confirmRemoveAccount(context, id),
           ),
           // Divider
-          VerticalDivider(width: 1, thickness: 1, color: colorScheme.outlineVariant),
+          VerticalDivider(
+              width: 1, thickness: 1, color: colorScheme.outlineVariant),
           // Email list
           Expanded(
             flex: 2,
@@ -68,18 +69,21 @@ class _InboxPageState extends ConsumerState<InboxPage> {
                 ref.read(inboxProvider.notifier).selectEmail(email.id);
               },
               onRefresh: () => ref.read(inboxProvider.notifier).refresh(),
-              onErrorDismiss: () => ref.read(inboxProvider.notifier).clearError(),
+              onErrorDismiss: () =>
+                  ref.read(inboxProvider.notifier).clearError(),
               mailboxPath: inboxState.selectedMailboxPath,
             ),
           ),
           // Email detail (only on wide screens)
           if (isWide) ...[
-            VerticalDivider(width: 1, thickness: 1, color: colorScheme.outlineVariant),
+            VerticalDivider(
+                width: 1, thickness: 1, color: colorScheme.outlineVariant),
             Expanded(
               flex: 3,
               child: inboxState.selectedEmailId != null
                   ? _EmailDetailPane(
-                      onClose: () => ref.read(inboxProvider.notifier).clearSelection(),
+                      onClose: () =>
+                          ref.read(inboxProvider.notifier).clearSelection(),
                       onToggleStar: () {
                         final email = inboxState.selectedEmail;
                         if (email != null) {
@@ -121,7 +125,8 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     );
   }
 
-  Future<void> _confirmRemoveAccount(BuildContext context, String accountId) async {
+  Future<void> _confirmRemoveAccount(
+      BuildContext context, String accountId) async {
     final accounts = ref.read(allAccountsProvider).value ?? [];
     final account = accounts.where((a) => a.id == accountId).firstOrNull;
 
@@ -235,7 +240,8 @@ class _MailSidebar extends StatelessWidget {
                           ),
                         ),
                         if (account.id == selectedAccountId)
-                          Icon(Icons.check, size: 18, color: colorScheme.primary),
+                          Icon(Icons.check,
+                              size: 18, color: colorScheme.primary),
                       ],
                     ),
                   ),
@@ -256,7 +262,8 @@ class _MailSidebar extends StatelessWidget {
                     value: '_remove',
                     child: Row(
                       children: [
-                        Icon(Icons.remove_circle_outline, color: colorScheme.error),
+                        Icon(Icons.remove_circle_outline,
+                            color: colorScheme.error),
                         const SizedBox(width: 8),
                         Text(
                           'Remove Account',
@@ -267,7 +274,8 @@ class _MailSidebar extends StatelessWidget {
                   ),
               ],
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
@@ -596,7 +604,8 @@ class _EmailListTile extends StatelessWidget {
               ? colorScheme.primaryContainer.withValues(alpha: 0.3)
               : null,
           border: Border(
-            bottom: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+            bottom: BorderSide(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
             left: isSelected
                 ? BorderSide(color: colorScheme.primary, width: 3)
                 : BorderSide.none,
@@ -627,7 +636,9 @@ class _EmailListTile extends StatelessWidget {
                         child: Text(
                           email.from.display,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: email.isRead ? FontWeight.normal : FontWeight.w600,
+                            fontWeight: email.isRead
+                                ? FontWeight.normal
+                                : FontWeight.w600,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -665,9 +676,13 @@ class _EmailListTile extends StatelessWidget {
                         ),
                       Expanded(
                         child: Text(
-                          email.subject.isEmpty ? '(No Subject)' : email.subject,
+                          email.subject.isEmpty
+                              ? '(No Subject)'
+                              : email.subject,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: email.isRead ? FontWeight.normal : FontWeight.w600,
+                            fontWeight: email.isRead
+                                ? FontWeight.normal
+                                : FontWeight.w600,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

@@ -132,7 +132,8 @@ class MailProviderConfigs {
       port: 587,
       security: ConnectionSecurity.starttls,
     ),
-    helpUrl: 'https://support.microsoft.com/en-us/account-billing/using-app-passwords-with-apps-that-don-t-support-two-step-verification-5896ed9b-4263-e681-128a-a6f2979a7944',
+    helpUrl:
+        'https://support.microsoft.com/en-us/account-billing/using-app-passwords-with-apps-that-don-t-support-two-step-verification-5896ed9b-4263-e681-128a-a6f2979a7944',
   );
 
   static const aol = ProviderConfig(
@@ -165,10 +166,15 @@ class MailProviderConfigs {
     if (domain.contains('yahoo')) {
       return MailProvider.yahoo;
     }
-    if (domain.contains('icloud') || domain.contains('me.com') || domain.contains('mac.com')) {
+    if (domain.contains('icloud') ||
+        domain.contains('me.com') ||
+        domain.contains('mac.com')) {
       return MailProvider.icloud;
     }
-    if (domain.contains('outlook') || domain.contains('hotmail') || domain.contains('live.com') || domain.contains('msn.com')) {
+    if (domain.contains('outlook') ||
+        domain.contains('hotmail') ||
+        domain.contains('live.com') ||
+        domain.contains('msn.com')) {
       return MailProvider.outlook;
     }
     if (domain.contains('aol')) {

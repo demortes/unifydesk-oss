@@ -160,7 +160,8 @@ class _OAuthPageState extends ConsumerState<OAuthPage> {
                       const SizedBox(height: 12),
                       const _StepItem(
                         number: '1',
-                        text: 'Enable 2-Step Verification in your Google account',
+                        text:
+                            'Enable 2-Step Verification in your Google account',
                       ),
                       const _StepItem(
                         number: '2',
@@ -231,7 +232,8 @@ class _OAuthPageState extends ConsumerState<OAuthPage> {
                             ),
                           )
                         : const Icon(Icons.login),
-                    label: Text(_isLoading ? 'Signing in...' : 'Sign in with Google'),
+                    label: Text(
+                        _isLoading ? 'Signing in...' : 'Sign in with Google'),
                   ),
                 ),
               ],
@@ -249,7 +251,8 @@ class _OAuthPageState extends ConsumerState<OAuthPage> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(

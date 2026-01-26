@@ -150,9 +150,11 @@ class ImapRemoteDataSource {
         );
       } else {
         // Full sync: Fetch latest messages by sequence number
-        final start =
-            mailbox.messagesExists > limit ? mailbox.messagesExists - limit + 1 : 1;
-        final sequence = MessageSequence.fromRange(start, mailbox.messagesExists);
+        final start = mailbox.messagesExists > limit
+            ? mailbox.messagesExists - limit + 1
+            : 1;
+        final sequence =
+            MessageSequence.fromRange(start, mailbox.messagesExists);
         fetchResult = await _client!.fetchMessages(
           sequence,
           '(UID FLAGS ENVELOPE BODYSTRUCTURE BODY.PEEK[TEXT])',
@@ -225,7 +227,8 @@ class ImapRemoteDataSource {
     if (isRead) {
       await _client!.uidStore(sequence, [MessageFlags.seen]);
     } else {
-      await _client!.uidStore(sequence, [MessageFlags.seen], action: StoreAction.remove);
+      await _client!
+          .uidStore(sequence, [MessageFlags.seen], action: StoreAction.remove);
     }
   }
 
@@ -336,7 +339,9 @@ class ImapRemoteDataSource {
           final bodyText = message.decodeContentText();
           if (bodyText != null && bodyText.isNotEmpty) {
             // Check if it looks like HTML
-            if (bodyText.contains('<html') || bodyText.contains('<body') || bodyText.contains('<div')) {
+            if (bodyText.contains('<html') ||
+                bodyText.contains('<body') ||
+                bodyText.contains('<div')) {
               htmlBody = bodyText;
             } else {
               textBody = bodyText;
@@ -344,14 +349,15 @@ class ImapRemoteDataSource {
           }
         }
 
-        _logger.d('Parsed body - HTML: ${htmlBody?.length ?? 0} chars, Text: ${textBody?.length ?? 0} chars');
+        _logger.d(
+            'Parsed body - HTML: ${htmlBody?.length ?? 0} chars, Text: ${textBody?.length ?? 0} chars');
       } else {
         // Just get a preview
-        final plainText = message.decodeTextPlainPart() ?? message.decodeContentText();
+        final plainText =
+            message.decodeTextPlainPart() ?? message.decodeContentText();
         if (plainText != null && plainText.isNotEmpty) {
-          textBody = plainText.length > 200
-              ? plainText.substring(0, 200)
-              : plainText;
+          textBody =
+              plainText.length > 200 ? plainText.substring(0, 200) : plainText;
         }
       }
 

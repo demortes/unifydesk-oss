@@ -41,9 +41,11 @@ class _ImapConfigPageState extends ConsumerState<ImapConfigPage> {
     _passwordController = TextEditingController(text: state.password);
     _displayNameController = TextEditingController(text: state.displayName);
     _imapHostController = TextEditingController(text: state.imapHost);
-    _imapPortController = TextEditingController(text: state.imapPort.toString());
+    _imapPortController =
+        TextEditingController(text: state.imapPort.toString());
     _smtpHostController = TextEditingController(text: state.smtpHost);
-    _smtpPortController = TextEditingController(text: state.smtpPort.toString());
+    _smtpPortController =
+        TextEditingController(text: state.smtpPort.toString());
   }
 
   @override
@@ -160,7 +162,9 @@ class _ImapConfigPageState extends ConsumerState<ImapConfigPage> {
                   prefixIcon: const Icon(Icons.lock_outlined),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                     ),
                     onPressed: () {
                       setState(() {
@@ -205,7 +209,8 @@ class _ImapConfigPageState extends ConsumerState<ImapConfigPage> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.label_outlined),
                 ),
-                textInputAction: isCustom ? TextInputAction.next : TextInputAction.done,
+                textInputAction:
+                    isCustom ? TextInputAction.next : TextInputAction.done,
               ),
               const SizedBox(height: 24),
 
@@ -218,7 +223,9 @@ class _ImapConfigPageState extends ConsumerState<ImapConfigPage> {
                   smtpPortController: _smtpPortController,
                   useSsl: state.useSsl,
                   onUseSslChanged: (value) {
-                    ref.read(onboardingProvider.notifier).setUseSsl(useSsl: value);
+                    ref
+                        .read(onboardingProvider.notifier)
+                        .setUseSsl(useSsl: value);
                   },
                 ),
                 const SizedBox(height: 24),
@@ -275,7 +282,8 @@ class _ImapConfigPageState extends ConsumerState<ImapConfigPage> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
