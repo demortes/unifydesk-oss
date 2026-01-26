@@ -191,24 +191,14 @@ class EmailDetailView extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context) {
+    // Debug info
+    debugPrint('Email body - HTML: ${email.htmlBody?.length ?? 0}, Text: ${email.textBody?.length ?? 0}');
+
     // Prefer HTML body if available
     if (email.htmlBody != null && email.htmlBody!.isNotEmpty) {
-      return Html(
-        data: email.htmlBody!,
-        onLinkTap: (url, _, __) {
-          if (url != null) {
-            _launchUrl(url);
-          }
-        },
-        style: {
-          'body': Style(
-            margin: Margins.zero,
-            padding: HtmlPaddings.zero,
-          ),
-          'a': Style(
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        },
+      return _HtmlBodyView(
+        html: email.htmlBody!,
+        fallbackText: _stripHtmlTags(email.htmlBody!),
       );
     }
 
@@ -220,13 +210,23 @@ class EmailDetailView extends StatelessWidget {
       );
     }
 
-    // No content
-    return Text(
-      'No content available',
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontStyle: FontStyle.italic,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+    // No content - show debug info
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'No content available',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontStyle: FontStyle.italic,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Debug: htmlBody=${email.htmlBody?.length ?? "null"}, textBody=${email.textBody?.length ?? "null"}',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
     );
   }
 
@@ -243,7 +243,158 @@ class EmailDetailView extends StatelessWidget {
     return '${recipients[0].display} and ${recipients.length - 1} others';
   }
 
-  Future<void> _launchUrl(String url) async {
+  /// Strip HTML tags and decode entities to get plain text.
+  String _stripHtmlTags(String html) {
+    // Remove style and script blocks entirely
+    var result = html.replaceAll(RegExp(r'<style[^>]*>.*?</style>', caseSensitive: false, dotAll: true), '');
+    result = result.replaceAll(RegExp(r'<script[^>]*>.*?</script>', caseSensitive: false, dotAll: true), '');
+
+    // Replace common block elements with newlines
+    result = result.replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n');
+    result = result.replaceAll(RegExp(r'</p>', caseSensitive: false), '\n\n');
+    result = result.replaceAll(RegExp(r'</div>', caseSensitive: false), '\n');
+    result = result.replaceAll(RegExp(r'</tr>', caseSensitive: false), '\n');
+    result = result.replaceAll(RegExp(r'</li>', caseSensitive: false), '\n');
+
+    // Remove all remaining HTML tags
+    result = result.replaceAll(RegExp(r'<[^>]+>'), '');
+
+    // Decode common HTML entities
+    result = result
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&apos;', "'");
+
+    // Clean up whitespace
+    result = result.replaceAll(RegExp(r'[ \t]+'), ' ');
+    result = result.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    return result.trim();
+  }
+}
+
+/// Widget that tries to render HTML, falling back to plain text if empty.
+class _HtmlBodyView extends StatelessWidget {
+  const _HtmlBodyView({
+    required this.html,
+    required this.fallbackText,
+  });
+
+  final String html;
+  final String fallbackText;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    // If HTML is mostly empty after stripping, just show fallback as plain text
+    if (fallbackText.isEmpty) {
+      return Text(
+        'No content available',
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontStyle: FontStyle.italic,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+
+    // Clean up email HTML for flutter_html compatibility
+    final cleanedHtml = _cleanEmailHtml(html);
+    debugPrint('Cleaned HTML: ${cleanedHtml.length} chars (from ${html.length})');
+
+    // Render HTML with flutter_html
+    return Html(
+      data: cleanedHtml,
+      onLinkTap: (url, _, __) => _launchUrl(url),
+      style: {
+        '*': Style(
+          color: theme.textTheme.bodyMedium?.color,
+          fontSize: FontSize(14),
+        ),
+        'body': Style(
+          margin: Margins.zero,
+          padding: HtmlPaddings.zero,
+        ),
+        'html': Style(
+          margin: Margins.zero,
+          padding: HtmlPaddings.zero,
+        ),
+        'a': Style(
+          color: theme.colorScheme.primary,
+          textDecoration: TextDecoration.underline,
+        ),
+        'p': Style(
+          margin: Margins.only(bottom: 8),
+        ),
+        'td': Style(
+          padding: HtmlPaddings.all(4),
+        ),
+        'img': Style(
+          width: Width(100, Unit.percent),
+        ),
+      },
+    );
+  }
+
+  /// Clean email HTML to make it compatible with flutter_html.
+  String _cleanEmailHtml(String html) {
+    var result = html;
+
+    // Remove DOCTYPE
+    result = result.replaceAll(RegExp(r'<!DOCTYPE[^>]*>', caseSensitive: false), '');
+
+    // Remove XML declarations
+    result = result.replaceAll(RegExp(r'<\?xml[^>]*\?>', caseSensitive: false), '');
+
+    // Remove MS Office conditional comments and their content
+    result = result.replaceAll(
+      RegExp(r'<!--\[if[^\]]*\]>.*?<!\[endif\]-->', caseSensitive: false, dotAll: true),
+      '',
+    );
+    result = result.replaceAll(
+      RegExp(r'<!--\[if[^\]]*\]>.*?<!endif-->', caseSensitive: false, dotAll: true),
+      '',
+    );
+
+    // Remove style blocks (flutter_html doesn't use them well anyway)
+    result = result.replaceAll(
+      RegExp(r'<style[^>]*>.*?</style>', caseSensitive: false, dotAll: true),
+      '',
+    );
+
+    // Remove VML/Office namespaced elements
+    result = result.replaceAll(RegExp(r'<v:[^>]*>.*?</v:[^>]*>', caseSensitive: false, dotAll: true), '');
+    result = result.replaceAll(RegExp(r'<o:[^>]*>.*?</o:[^>]*>', caseSensitive: false, dotAll: true), '');
+    result = result.replaceAll(RegExp(r'<v:[^>]*/>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp(r'<o:[^>]*/>', caseSensitive: false), '');
+
+    // Remove xmlns attributes that might confuse the parser
+    result = result.replaceAll(RegExp(r'\s+xmlns[^=]*="[^"]*"'), '');
+
+    // Remove mso-* style properties inline
+    result = result.replaceAll(RegExp(r'mso-[^;:"]+:[^;:"]+;?'), '');
+
+    // Clean up head tag content (keep only title if present)
+    result = result.replaceAll(
+      RegExp(r'<head[^>]*>.*?</head>', caseSensitive: false, dotAll: true),
+      '',
+    );
+
+    // Simplify the html tag
+    result = result.replaceAll(
+      RegExp(r'<html[^>]*>', caseSensitive: false),
+      '<html>',
+    );
+
+    return result.trim();
+  }
+
+  Future<void> _launchUrl(String? url) async {
+    if (url == null) return;
     final uri = Uri.tryParse(url);
     if (uri != null && await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);

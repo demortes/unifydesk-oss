@@ -324,11 +324,30 @@ class ImapRemoteDataSource {
       String? htmlBody;
 
       if (fetchFullBody) {
-        textBody = message.decodeTextPlainPart();
+        // Try to decode HTML part first
         htmlBody = message.decodeTextHtmlPart();
+
+        // Try to decode plain text part
+        textBody = message.decodeTextPlainPart();
+
+        // If both are null, try to get the raw body text
+        if (htmlBody == null && textBody == null) {
+          // Try getting body from the message directly
+          final bodyText = message.decodeContentText();
+          if (bodyText != null && bodyText.isNotEmpty) {
+            // Check if it looks like HTML
+            if (bodyText.contains('<html') || bodyText.contains('<body') || bodyText.contains('<div')) {
+              htmlBody = bodyText;
+            } else {
+              textBody = bodyText;
+            }
+          }
+        }
+
+        _logger.d('Parsed body - HTML: ${htmlBody?.length ?? 0} chars, Text: ${textBody?.length ?? 0} chars');
       } else {
         // Just get a preview
-        final plainText = message.decodeTextPlainPart();
+        final plainText = message.decodeTextPlainPart() ?? message.decodeContentText();
         if (plainText != null && plainText.isNotEmpty) {
           textBody = plainText.length > 200
               ? plainText.substring(0, 200)

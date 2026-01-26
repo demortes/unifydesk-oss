@@ -77,9 +77,8 @@ class _InboxPageState extends ConsumerState<InboxPage> {
             VerticalDivider(width: 1, thickness: 1, color: colorScheme.outlineVariant),
             Expanded(
               flex: 3,
-              child: inboxState.selectedEmail != null
-                  ? EmailDetailView(
-                      email: inboxState.selectedEmail!,
+              child: inboxState.selectedEmailId != null
+                  ? _EmailDetailPane(
                       onClose: () => ref.read(inboxProvider.notifier).clearSelection(),
                       onToggleStar: () {
                         final email = inboxState.selectedEmail;
@@ -711,6 +710,64 @@ class _EmailListTile extends StatelessWidget {
     } else {
       return DateFormat.yMMMd().format(date);
     }
+  }
+}
+
+/// Email detail pane that fetches full content.
+class _EmailDetailPane extends ConsumerWidget {
+  const _EmailDetailPane({
+    required this.onClose,
+    required this.onToggleStar,
+    required this.onDelete,
+    required this.onMarkUnread,
+  });
+
+  final VoidCallback onClose;
+  final VoidCallback onToggleStar;
+  final VoidCallback onDelete;
+  final VoidCallback onMarkUnread;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final emailAsync = ref.watch(selectedEmailProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return emailAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: colorScheme.error),
+            const SizedBox(height: 16),
+            Text(
+              'Failed to load email',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+      data: (email) {
+        if (email == null) {
+          return const _EmptyDetailPlaceholder();
+        }
+        return EmailDetailView(
+          email: email,
+          onClose: onClose,
+          onToggleStar: onToggleStar,
+          onDelete: onDelete,
+          onMarkUnread: onMarkUnread,
+        );
+      },
+    );
   }
 }
 
