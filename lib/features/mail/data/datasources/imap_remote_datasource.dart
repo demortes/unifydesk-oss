@@ -349,7 +349,8 @@ class ImapRemoteDataSource {
         }
 
         _logger.d(
-            'Parsed body - HTML: ${htmlBody?.length ?? 0} chars, Text: ${textBody?.length ?? 0} chars',);
+          'Parsed body - HTML: ${htmlBody?.length ?? 0} chars, Text: ${textBody?.length ?? 0} chars',
+        );
       } else {
         // Just get a preview
         final plainText =

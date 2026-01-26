@@ -353,8 +353,9 @@ class InboxNotifier extends Notifier<InboxState> {
       }
 
       // Invalidate providers to refresh data
-      ref..invalidate(allAccountsProvider)
-      ..invalidate(hasAccountsProvider);
+      ref
+        ..invalidate(allAccountsProvider)
+        ..invalidate(hasAccountsProvider);
 
       // Check if there are remaining accounts
       final remainingAccounts = await ref.read(allAccountsProvider.future);

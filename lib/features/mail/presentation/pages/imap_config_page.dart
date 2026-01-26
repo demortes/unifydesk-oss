@@ -65,16 +65,17 @@ class _ImapConfigPageState extends ConsumerState<ImapConfigPage> {
 
     final notifier = ref.read(onboardingProvider.notifier)
 
-    // Update state with form values
-    ..setEmail(_emailController.text)
-    ..setPassword(_passwordController.text)
-    ..setDisplayName(_displayNameController.text);
+      // Update state with form values
+      ..setEmail(_emailController.text)
+      ..setPassword(_passwordController.text)
+      ..setDisplayName(_displayNameController.text);
 
     if (ref.read(onboardingProvider).selectedProvider == MailProvider.custom) {
-      notifier..setImapHost(_imapHostController.text)
-      ..setImapPort(int.tryParse(_imapPortController.text) ?? 993)
-      ..setSmtpHost(_smtpHostController.text)
-      ..setSmtpPort(int.tryParse(_smtpPortController.text) ?? 465);
+      notifier
+        ..setImapHost(_imapHostController.text)
+        ..setImapPort(int.tryParse(_imapPortController.text) ?? 993)
+        ..setSmtpHost(_smtpHostController.text)
+        ..setSmtpPort(int.tryParse(_smtpPortController.text) ?? 465);
     }
 
     // Save account

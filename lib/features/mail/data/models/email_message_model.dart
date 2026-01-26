@@ -147,10 +147,12 @@ class EmailMessageModel extends EmailMessage {
   static String _encodeAddressList(List<EmailAddress> addresses) {
     return jsonEncode(
       addresses
-          .map((a) => {
-                'address': a.address,
-                'name': a.displayName,
-              },)
+          .map(
+            (a) => {
+              'address': a.address,
+              'name': a.displayName,
+            },
+          )
           .toList(),
     );
   }

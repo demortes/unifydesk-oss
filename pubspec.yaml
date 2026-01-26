@@ -88,7 +88,7 @@ dependencies:
   package_info_plus: ^9.0.0
 
   # Notifications
-  flutter_local_notifications: ^19.5.0
+  flutter_local_notifications: ^20.0.0
 
   # Image Handling
   cached_network_image: ^3.3.1

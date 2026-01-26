@@ -193,7 +193,8 @@ class EmailDetailView extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     // Debug info
     debugPrint(
-        'Email body - HTML: ${email.htmlBody?.length ?? 0}, Text: ${email.textBody?.length ?? 0}',);
+      'Email body - HTML: ${email.htmlBody?.length ?? 0}, Text: ${email.textBody?.length ?? 0}',
+    );
 
     // Prefer HTML body if available
     if (email.htmlBody != null && email.htmlBody!.isNotEmpty) {
@@ -248,12 +249,17 @@ class EmailDetailView extends StatelessWidget {
   String _stripHtmlTags(String html) {
     // Remove style and script blocks entirely
     var result = html.replaceAll(
-        RegExp('<style[^>]*>.*?</style>', caseSensitive: false, dotAll: true),
-        '',);
+      RegExp('<style[^>]*>.*?</style>', caseSensitive: false, dotAll: true),
+      '',
+    );
     result = result.replaceAll(
-        RegExp('<script[^>]*>.*?</script>',
-            caseSensitive: false, dotAll: true,),
-        '',);
+      RegExp(
+        '<script[^>]*>.*?</script>',
+        caseSensitive: false,
+        dotAll: true,
+      ),
+      '',
+    );
 
     // Replace common block elements with newlines
     result =
@@ -312,7 +318,8 @@ class _HtmlBodyView extends StatelessWidget {
     // Clean up email HTML for flutter_html compatibility
     final cleanedHtml = _cleanEmailHtml(html);
     debugPrint(
-        'Cleaned HTML: ${cleanedHtml.length} chars (from ${html.length})',);
+      'Cleaned HTML: ${cleanedHtml.length} chars (from ${html.length})',
+    );
 
     // Render HTML with flutter_html
     return Html(
@@ -362,13 +369,19 @@ class _HtmlBodyView extends StatelessWidget {
 
     // Remove MS Office conditional comments and their content
     result = result.replaceAll(
-      RegExp(r'<!--\[if[^\]]*\]>.*?<!\[endif\]-->',
-          caseSensitive: false, dotAll: true,),
+      RegExp(
+        r'<!--\[if[^\]]*\]>.*?<!\[endif\]-->',
+        caseSensitive: false,
+        dotAll: true,
+      ),
       '',
     );
     result = result.replaceAll(
-      RegExp(r'<!--\[if[^\]]*\]>.*?<!endif-->',
-          caseSensitive: false, dotAll: true,),
+      RegExp(
+        r'<!--\[if[^\]]*\]>.*?<!endif-->',
+        caseSensitive: false,
+        dotAll: true,
+      ),
       '',
     );
 
@@ -380,11 +393,13 @@ class _HtmlBodyView extends StatelessWidget {
 
     // Remove VML/Office namespaced elements
     result = result.replaceAll(
-        RegExp('<v:[^>]*>.*?</v:[^>]*>', caseSensitive: false, dotAll: true),
-        '',);
+      RegExp('<v:[^>]*>.*?</v:[^>]*>', caseSensitive: false, dotAll: true),
+      '',
+    );
     result = result.replaceAll(
-        RegExp('<o:[^>]*>.*?</o:[^>]*>', caseSensitive: false, dotAll: true),
-        '',);
+      RegExp('<o:[^>]*>.*?</o:[^>]*>', caseSensitive: false, dotAll: true),
+      '',
+    );
     result = result.replaceAll(RegExp('<v:[^>]*/>', caseSensitive: false), '');
     result = result.replaceAll(RegExp('<o:[^>]*/>', caseSensitive: false), '');
 

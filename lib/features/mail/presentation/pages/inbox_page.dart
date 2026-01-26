@@ -55,7 +55,10 @@ class _InboxPageState extends ConsumerState<InboxPage> {
           ),
           // Divider
           VerticalDivider(
-              width: 1, thickness: 1, color: colorScheme.outlineVariant,),
+            width: 1,
+            thickness: 1,
+            color: colorScheme.outlineVariant,
+          ),
           // Email list
           Expanded(
             flex: 2,
@@ -77,7 +80,10 @@ class _InboxPageState extends ConsumerState<InboxPage> {
           // Email detail (only on wide screens)
           if (isWide) ...[
             VerticalDivider(
-                width: 1, thickness: 1, color: colorScheme.outlineVariant,),
+              width: 1,
+              thickness: 1,
+              color: colorScheme.outlineVariant,
+            ),
             Expanded(
               flex: 3,
               child: inboxState.selectedEmailId != null
@@ -126,7 +132,9 @@ class _InboxPageState extends ConsumerState<InboxPage> {
   }
 
   Future<void> _confirmRemoveAccount(
-      BuildContext context, String accountId,) async {
+    BuildContext context,
+    String accountId,
+  ) async {
     final accounts = ref.read(allAccountsProvider).value ?? [];
     final account = accounts.where((a) => a.id == accountId).firstOrNull;
 
@@ -240,8 +248,11 @@ class _MailSidebar extends StatelessWidget {
                           ),
                         ),
                         if (account.id == selectedAccountId)
-                          Icon(Icons.check,
-                              size: 18, color: colorScheme.primary,),
+                          Icon(
+                            Icons.check,
+                            size: 18,
+                            color: colorScheme.primary,
+                          ),
                       ],
                     ),
                   ),
@@ -262,8 +273,10 @@ class _MailSidebar extends StatelessWidget {
                     value: '_remove',
                     child: Row(
                       children: [
-                        Icon(Icons.remove_circle_outline,
-                            color: colorScheme.error,),
+                        Icon(
+                          Icons.remove_circle_outline,
+                          color: colorScheme.error,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Remove Account',
@@ -605,7 +618,8 @@ class _EmailListTile extends StatelessWidget {
               : null,
           border: Border(
             bottom: BorderSide(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.5),),
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
             left: isSelected
                 ? BorderSide(color: colorScheme.primary, width: 3)
                 : BorderSide.none,
