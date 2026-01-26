@@ -3,7 +3,19 @@
     "allow": [
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(dir:*)",
+      "Bash(cd:*)",
+      "Bash(git -C \"X:\\\\repos\\\\oss-communication\" log --oneline -5)",
+      "Bash(git -C \"X:\\\\repos\\\\oss-communication\" status)",
+      "Bash(git -C \"X:\\\\repos\\\\oss-communication\" diff lib/main.dart)",
+      "Bash(git -C \"X:\\\\repos\\\\oss-communication\" show HEAD:lib/main.dart)",
+      "Bash(git -C \"X:\\\\repos\\\\oss-communication\" log --all --pretty=format:\"%h %s\")",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter build:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(start \"\" \"build\\\\windows\\\\x64\\\\runner\\\\Release\\\\unifydesk.exe\")"
     ]
   }
 }

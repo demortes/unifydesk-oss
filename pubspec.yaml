@@ -27,6 +27,7 @@ dependencies:
 
   # Local Storage
   sqflite: ^2.3.2
+  sqflite_common_ffi: ^2.3.3  # Desktop support for sqflite
   path_provider: ^2.1.2
   shared_preferences: ^2.2.2
   flutter_secure_storage: ^10.0.0
