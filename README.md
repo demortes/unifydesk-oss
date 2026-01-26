@@ -5,6 +5,7 @@ A privacy-focused, cross-platform communications application built with Flutter.
 ## 🌟 Features
 
 ### 📧 Mail
+
 - **Unified Inbox**: View all your email accounts in one place
 - **Multiple Account Support**: IMAP, OAuth (Gmail, Outlook, etc.)
 - **Secure Communication**: TLS/SSL encryption for all connections
@@ -13,6 +14,7 @@ A privacy-focused, cross-platform communications application built with Flutter.
 - **Labels & Folders**: Organize your emails efficiently
 
 ### 📅 Calendar
+
 - **Multi-Calendar Sync**: Google Calendar, CalDAV support
 - **Event Management**: Create, edit, and manage events
 - **Reminders & Notifications**: Never miss an important event
@@ -20,6 +22,7 @@ A privacy-focused, cross-platform communications application built with Flutter.
 - **Offline Access**: Access your schedule anytime
 
 ### 👥 Contacts
+
 - **Contact Sync**: Google Contacts, CardDAV support
 - **Contact Management**: Add, edit, organize contacts
 - **Groups & Labels**: Organize contacts efficiently
@@ -37,47 +40,46 @@ A privacy-focused, cross-platform communications application built with Flutter.
 
 ## 📱 Supported Platforms
 
-| Platform | Status |
-|----------|--------|
-| Android (Phone) | ✅ Supported |
-| Android (Tablet) | ✅ Supported |
+| Platform           | Status       |
+| ------------------ | ------------ |
+| Android (Phone)    | ✅ Supported |
+| Android (Tablet)   | ✅ Supported |
 | Android (Foldable) | ✅ Supported |
-| iOS (iPhone) | ✅ Supported |
-| iOS (iPad) | ✅ Supported |
-| Windows Desktop | ✅ Supported |
-| macOS Desktop | ✅ Supported |
-| Linux Desktop | ✅ Supported |
+| Windows Desktop    | ✅ Supported |
 
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Flutter SDK (3.19.0 or higher)
 - Dart SDK (3.3.0 or higher)
 - Platform-specific setup:
   - **Android**: Android Studio, Android SDK 21+
-  - **iOS**: Xcode 15+, iOS 12+
-  - **Desktop**: Platform-specific build tools
+  - **Desktop**: Visual Studio build tools (Windows)
 
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/Demortes/unifydesk.git
 cd unifydesk
 ```
 
 2. Install dependencies:
+
 ```bash
 flutter pub get
 ```
 
 3. Run the app:
+
 ```bash
-# For Android/iOS
+# For Android
 flutter run
 
-# For desktop
-flutter run -d windows  # or macos, linux
+# For Windows
+flutter run -d windows
 ```
 
 ## 🏗️ Project Structure
@@ -127,6 +129,7 @@ flutter test --coverage
 We welcome contributions! Please see our [Contributing Guide](docs/contributing/CONTRIBUTING.md) for details.
 
 ### Development Setup
+
 See [Setup Guide](docs/setup/README.md) for detailed development environment setup.
 
 ## 📝 License

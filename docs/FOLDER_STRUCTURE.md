@@ -19,10 +19,7 @@ unifydesk/
 │   └── images/
 ├── docs/                     # Documentation
 ├── integration_test/         # Integration tests
-├── ios/                      # iOS platform code
 ├── lib/                      # Main application code
-├── linux/                    # Linux platform code
-├── macos/                    # macOS platform code
 ├── test/                     # Unit and widget tests
 ├── web/                      # Web platform code (if needed)
 ├── windows/                  # Windows platform code
@@ -98,7 +95,6 @@ core/
 │   │   ├── layout_builder.dart
 │   │   └── platform_detector.dart
 │   ├── android/
-│   ├── ios/
 │   ├── desktop/
 │   └── foldable/            # Foldable device support
 ├── security/                # Security and encryption
@@ -428,19 +424,12 @@ integration_test/
 ## Platform-Specific Folders
 
 ### Android (`android/`)
+
 Standard Android project structure with Kotlin/Java code.
 
-### iOS (`ios/`)
-Standard iOS project structure with Swift/Objective-C code.
-
 ### Windows (`windows/`)
+
 Windows desktop runner and native code.
-
-### macOS (`macos/`)
-macOS desktop runner and native code.
-
-### Linux (`linux/`)
-Linux desktop runner and native code.
 
 ## Key Principles
 

@@ -8,7 +8,7 @@ This document provides a quick overview of the UnifyDesk project structure and h
 
 UnifyDesk is a privacy-focused, cross-platform communications application that unifies email, calendar, and contacts management across all your devices. Built with Flutter, it supports:
 
-- **Platforms**: Android (phone/tablet/foldable), iOS (iPhone/iPad), Windows, macOS, Linux
+- **Platforms**: Android (phone/tablet/foldable), Windows
 - **Features**: Mail with unified inbox, calendar with CalDAV sync, contacts with CardDAV sync
 - **Privacy**: Client-side only, no tracking, encrypted storage, no ads
 
@@ -25,7 +25,7 @@ unifydesk/
 │   ├── features/      # Feature modules (mail, calendar, contacts)
 │   └── shared/        # Shared UI components
 ├── test/              # Unit and widget tests
-└── [platform]/        # Platform-specific code (android, ios, windows, macos, linux)
+└── [platform]/        # Platform-specific code (android, windows)
 ```
 
 ## Key Documentation
@@ -126,28 +126,34 @@ Repository Implementation
 ## Technology Stack
 
 ### Core
+
 - **Flutter**: UI framework
 - **Dart**: Programming language
 - **Riverpod**: State management
 
 ### Mail
+
 - **IMAP/SMTP**: Email protocols
 - **OAuth 2.0**: Authentication
 
 ### Calendar
+
 - **CalDAV**: Calendar sync protocol
 - **iCalendar**: Event format (RFC 5545)
 
 ### Contacts
+
 - **CardDAV**: Contact sync protocol
 - **vCard**: Contact format (RFC 6350)
 
 ### Storage
+
 - **SQLite**: Local database
 - **Secure Storage**: Encrypted credential storage
 - **Shared Preferences**: App settings
 
 ### Security
+
 - **TLS/SSL**: Encrypted communication
 - **AES-256**: Local data encryption
 - **OAuth 2.0 + PKCE**: Secure authentication
@@ -220,40 +226,40 @@ refactor: extract common email logic
 ### Common Issues
 
 **Flutter not found**
+
 ```bash
 export PATH="$PATH:/path/to/flutter/bin"
 ```
 
 **Dependency conflicts**
+
 ```bash
 flutter clean
 flutter pub get
 ```
 
-**iOS build fails**
-```bash
-cd ios && pod install && cd ..
-flutter clean && flutter pub get
-```
-
 **Android build fails**
+
 - Verify Android SDK is installed
 - Check Java version (JDK 17 required)
 
 ## Resources
 
 ### Flutter
+
 - [Flutter Documentation](https://flutter.dev/docs)
 - [Flutter Codelabs](https://flutter.dev/codelabs)
 - [Dart Language Tour](https://dart.dev/guides/language/language-tour)
 
 ### Protocols
+
 - [IMAP RFC 3501](https://tools.ietf.org/html/rfc3501)
 - [CalDAV RFC 4791](https://tools.ietf.org/html/rfc4791)
 - [CardDAV RFC 6352](https://tools.ietf.org/html/rfc6352)
 - [OAuth 2.0 RFC 6749](https://tools.ietf.org/html/rfc6749)
 
 ### Architecture
+
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 - [Flutter Clean Architecture](https://github.com/ResoCoder/flutter-tdd-clean-architecture-course)
 
