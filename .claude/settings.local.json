@@ -15,7 +15,10 @@
       "Bash(flutter run:*)",
       "Bash(flutter build:*)",
       "Bash(flutter pub get:*)",
-      "Bash(start \"\" \"build\\\\windows\\\\x64\\\\runner\\\\Release\\\\unifydesk.exe\")"
+      "Bash(start \"\" \"build\\\\windows\\\\x64\\\\runner\\\\Release\\\\unifydesk.exe\")",
+      "Bash(start \"\" \"X:\\\\repos\\\\oss-communication\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\\\\unifydesk.exe\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

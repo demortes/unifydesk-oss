@@ -1,0 +1,19 @@
+{
+  "@@locale": "es",
+  "appTitle": "UnifyDesk",
+  "errorInitializingApp": "Error al inicializar la aplicación",
+  "allAccounts": "Todas las cuentas",
+  "addAccount": "Agregar cuenta",
+  "inbox": "Bandeja de entrada",
+  "sent": "Enviados",
+  "drafts": "Borradores",
+  "junk": "Correo no deseado",
+  "trash": "Papelera",
+  "archive": "Archivo",
+  "archiveTooltip": "Archivar",
+  "deleteTooltip": "Eliminar",
+  "markAsUnread": "Marcar como no leído",
+  "refresh": "Actualizar",
+  "noEmails": "No hay correos",
+  "selectEmailToRead": "Selecciona un correo para leer"
+}

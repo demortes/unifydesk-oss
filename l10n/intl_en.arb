@@ -1,0 +1,19 @@
+{
+  "@@locale": "en",
+  "appTitle": "UnifyDesk",
+  "errorInitializingApp": "Error initializing app",
+  "allAccounts": "All Accounts",
+  "addAccount": "Add Account",
+  "inbox": "Inbox",
+  "sent": "Sent",
+  "drafts": "Drafts",
+  "junk": "Spam",
+  "trash": "Trash",
+  "archive": "Archive",
+  "archiveTooltip": "Archive",
+  "deleteTooltip": "Delete",
+  "markAsUnread": "Mark as unread",
+  "refresh": "Refresh",
+  "noEmails": "No emails",
+  "selectEmailToRead": "Select an email to read"
+}
