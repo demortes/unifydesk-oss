@@ -259,6 +259,37 @@ class _ImapConfigPageState extends ConsumerState<ImapConfigPage> {
                 const SizedBox(height: 24),
               ],
 
+              // Status message during validation
+              if (state.statusMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          state.statusMessage!,
+                          style: TextStyle(color: colorScheme.onPrimaryContainer),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
               // Submit button
               SizedBox(
                 width: double.infinity,
@@ -266,13 +297,25 @@ class _ImapConfigPageState extends ConsumerState<ImapConfigPage> {
                 child: FilledButton(
                   onPressed: state.isLoading ? null : _submit,
                   child: state.isLoading
-                      ? SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: colorScheme.onPrimary,
-                          ),
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colorScheme.onPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              state.isValidating
+                                  ? 'Verifying...'
+                                  : 'Saving...',
+                            ),
+                          ],
                         )
                       : const Text('Add Account'),
                 ),

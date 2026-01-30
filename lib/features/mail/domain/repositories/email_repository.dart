@@ -61,6 +61,9 @@ abstract class EmailRepository {
     int uid,
   );
 
+  /// Create a mailbox/folder on the server.
+  Future<void> createMailbox(String accountId, String mailboxPath);
+
   /// Delete email.
   Future<void> deleteEmail(
     String accountId,

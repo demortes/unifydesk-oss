@@ -3,9 +3,15 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/constants/mail_providers.dart';
 import '../../../../core/security/secure_storage_service.dart';
+import '../../../../core/services/imap_connection_service.dart';
 import '../../data/repositories/account_repository_impl.dart';
 import '../../domain/entities/email_account.dart';
 import '../../domain/repositories/account_repository.dart';
+
+/// Provider for IMAP connection service.
+final imapConnectionServiceProvider = Provider<ImapConnectionService>((ref) {
+  return ImapConnectionService();
+});
 
 /// Provider for account repository.
 final accountRepositoryProvider = Provider<AccountRepository>((ref) {
@@ -37,6 +43,8 @@ class OnboardingState {
     this.smtpPort = 465,
     this.useSsl = true,
     this.isLoading = false,
+    this.isValidating = false,
+    this.statusMessage,
     this.error,
     this.addedAccounts = const [],
   });
@@ -51,6 +59,8 @@ class OnboardingState {
   final int smtpPort;
   final bool useSsl;
   final bool isLoading;
+  final bool isValidating;
+  final String? statusMessage;
   final String? error;
   final List<EmailAccount> addedAccounts;
 
@@ -90,9 +100,12 @@ class OnboardingState {
     int? smtpPort,
     bool? useSsl,
     bool? isLoading,
+    bool? isValidating,
+    String? statusMessage,
     String? error,
     List<EmailAccount>? addedAccounts,
     bool clearError = false,
+    bool clearStatus = false,
     bool clearProvider = false,
   }) {
     return OnboardingState(
@@ -107,6 +120,8 @@ class OnboardingState {
       smtpPort: smtpPort ?? this.smtpPort,
       useSsl: useSsl ?? this.useSsl,
       isLoading: isLoading ?? this.isLoading,
+      isValidating: isValidating ?? this.isValidating,
+      statusMessage: clearStatus ? null : (statusMessage ?? this.statusMessage),
       error: clearError ? null : (error ?? this.error),
       addedAccounts: addedAccounts ?? this.addedAccounts,
     );
@@ -123,11 +138,13 @@ class OnboardingState {
 /// Notifier for managing onboarding state.
 class OnboardingNotifier extends Notifier<OnboardingState> {
   late final AccountRepository _repository;
+  late final ImapConnectionService _connectionService;
   final _uuid = const Uuid();
 
   @override
   OnboardingState build() {
     _repository = ref.watch(accountRepositoryProvider);
+    _connectionService = ref.watch(imapConnectionServiceProvider);
     return const OnboardingState();
   }
 
@@ -186,14 +203,58 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
     state = state.copyWith(useSsl: useSsl);
   }
 
-  /// Save account with password authentication.
+  /// Validate credentials and save account with password authentication.
+  ///
+  /// This method first tests the IMAP connection, then saves the account
+  /// if the connection is successful.
   Future<bool> saveAccountWithPassword() async {
     if (!state.canSave) {
       state = state.copyWith(error: 'Please fill in all required fields');
       return false;
     }
 
-    state = state.copyWith(isLoading: true, clearError: true);
+    // Get the IMAP settings
+    final provider = state.selectedProvider ?? MailProvider.custom;
+    final config = MailProviderConfigs.getConfig(provider);
+    final imapHost = provider == MailProvider.custom
+        ? state.imapHost
+        : config?.imap.host ?? '';
+    final imapPort = provider == MailProvider.custom
+        ? state.imapPort
+        : config?.imap.port ?? 993;
+
+    // Start validation
+    state = state.copyWith(
+      isValidating: true,
+      isLoading: true,
+      statusMessage: 'Verifying credentials...',
+      clearError: true,
+    );
+
+    // Test IMAP connection
+    final result = await _connectionService.testConnection(
+      host: imapHost,
+      port: imapPort,
+      email: state.email,
+      password: state.password,
+      useSsl: state.useSsl,
+    );
+
+    if (!result.success) {
+      state = state.copyWith(
+        isValidating: false,
+        isLoading: false,
+        clearStatus: true,
+        error: result.errorMessage ?? 'Connection failed',
+      );
+      return false;
+    }
+
+    // Connection successful, now save
+    state = state.copyWith(
+      isValidating: false,
+      statusMessage: 'Saving account...',
+    );
 
     try {
       final account = _createAccount();
@@ -206,6 +267,7 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
       // Add to list of added accounts
       state = state.copyWith(
         isLoading: false,
+        clearStatus: true,
         addedAccounts: [...state.addedAccounts, account],
       );
 
@@ -213,6 +275,7 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
+        clearStatus: true,
         error: 'Failed to save account: $e',
       );
       return false;

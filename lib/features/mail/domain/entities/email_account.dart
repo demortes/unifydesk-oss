@@ -14,11 +14,15 @@ class EmailAccount extends Equatable {
     required this.authType,
     required this.createdAt,
     this.displayName,
+    this.signature,
+    this.replyTo,
     this.imapHost,
     this.imapPort,
     this.smtpHost,
     this.smtpPort,
     this.useSsl = true,
+    this.syncFrequencyMinutes = 15,
+    this.isActive = true,
     this.updatedAt,
   });
 
@@ -28,8 +32,14 @@ class EmailAccount extends Equatable {
   /// Email address for this account.
   final String email;
 
-  /// Display name shown in the UI.
+  /// Display name shown in the UI and outgoing emails.
   final String? displayName;
+
+  /// Email signature appended to outgoing messages.
+  final String? signature;
+
+  /// Reply-to email address (if different from account email).
+  final String? replyTo;
 
   /// Mail provider type (gmail, yahoo, etc.).
   final MailProvider providerType;
@@ -51,6 +61,12 @@ class EmailAccount extends Equatable {
 
   /// Whether to use SSL/TLS for connections.
   final bool useSsl;
+
+  /// How often to sync emails (in minutes).
+  final int syncFrequencyMinutes;
+
+  /// Whether this account is active (enabled for sync).
+  final bool isActive;
 
   /// When this account was created.
   final DateTime createdAt;
@@ -86,6 +102,8 @@ class EmailAccount extends Equatable {
     String? id,
     String? email,
     String? displayName,
+    String? signature,
+    String? replyTo,
     MailProvider? providerType,
     AuthType? authType,
     String? imapHost,
@@ -93,13 +111,20 @@ class EmailAccount extends Equatable {
     String? smtpHost,
     int? smtpPort,
     bool? useSsl,
+    int? syncFrequencyMinutes,
+    bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool clearDisplayName = false,
+    bool clearSignature = false,
+    bool clearReplyTo = false,
   }) {
     return EmailAccount(
       id: id ?? this.id,
       email: email ?? this.email,
-      displayName: displayName ?? this.displayName,
+      displayName: clearDisplayName ? null : (displayName ?? this.displayName),
+      signature: clearSignature ? null : (signature ?? this.signature),
+      replyTo: clearReplyTo ? null : (replyTo ?? this.replyTo),
       providerType: providerType ?? this.providerType,
       authType: authType ?? this.authType,
       imapHost: imapHost ?? this.imapHost,
@@ -107,6 +132,8 @@ class EmailAccount extends Equatable {
       smtpHost: smtpHost ?? this.smtpHost,
       smtpPort: smtpPort ?? this.smtpPort,
       useSsl: useSsl ?? this.useSsl,
+      syncFrequencyMinutes: syncFrequencyMinutes ?? this.syncFrequencyMinutes,
+      isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -117,6 +144,8 @@ class EmailAccount extends Equatable {
         id,
         email,
         displayName,
+        signature,
+        replyTo,
         providerType,
         authType,
         imapHost,
@@ -124,6 +153,8 @@ class EmailAccount extends Equatable {
         smtpHost,
         smtpPort,
         useSsl,
+        syncFrequencyMinutes,
+        isActive,
         createdAt,
         updatedAt,
       ];

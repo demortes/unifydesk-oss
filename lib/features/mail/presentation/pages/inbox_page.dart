@@ -8,6 +8,7 @@ import '../providers/inbox_provider.dart';
 import '../providers/onboarding_provider.dart';
 import '../widgets/email_detail_view.dart';
 import 'onboarding_page.dart';
+import 'settings_page.dart';
 
 /// Main inbox page with responsive layout.
 class InboxPage extends ConsumerStatefulWidget {
@@ -52,6 +53,7 @@ class _InboxPageState extends ConsumerState<InboxPage> {
             },
             onAddAccount: () => _navigateToAddAccount(context),
             onRemoveAccount: (id) => _confirmRemoveAccount(context, id),
+            onSettings: () => _navigateToSettings(context),
           ),
           // Divider
           VerticalDivider(
@@ -102,6 +104,12 @@ class _InboxPageState extends ConsumerState<InboxPage> {
                           ref.read(inboxProvider.notifier).deleteEmail(email);
                         }
                       },
+                      onArchive: () {
+                        final email = inboxState.selectedEmail;
+                        if (email != null) {
+                          ref.read(inboxProvider.notifier).archiveEmail(email);
+                        }
+                      },
                       onMarkUnread: () {
                         final email = inboxState.selectedEmail;
                         if (email != null) {
@@ -129,6 +137,17 @@ class _InboxPageState extends ConsumerState<InboxPage> {
         ),
       ),
     );
+  }
+
+  void _navigateToSettings(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => const SettingsPage(),
+      ),
+    ).then((_) {
+      // Refresh accounts list when returning from settings
+      ref.invalidate(allAccountsProvider);
+    });
   }
 
   Future<void> _confirmRemoveAccount(
@@ -188,6 +207,7 @@ class _MailSidebar extends StatelessWidget {
     required this.onAccountSelected,
     required this.onAddAccount,
     required this.onRemoveAccount,
+    required this.onSettings,
   });
 
   final List<Mailbox> mailboxes;
@@ -195,9 +215,10 @@ class _MailSidebar extends StatelessWidget {
   final ValueChanged<String> onMailboxSelected;
   final List accounts;
   final String? selectedAccountId;
-  final ValueChanged<String> onAccountSelected;
+  final ValueChanged<String?> onAccountSelected;
   final VoidCallback onAddAccount;
   final ValueChanged<String> onRemoveAccount;
+  final VoidCallback onSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -219,11 +240,24 @@ class _MailSidebar extends StatelessWidget {
                   if (selectedAccountId != null) {
                     onRemoveAccount(selectedAccountId!);
                   }
+                } else if (value == '_all') {
+                  onAccountSelected(null);
                 } else {
                   onAccountSelected(value);
                 }
               },
               itemBuilder: (context) => [
+                const PopupMenuItem<String>(
+                  value: '_all',
+                  child: Row(
+                    children: [
+                      Icon(Icons.account_circle),
+                      SizedBox(width: 8),
+                      Text('All Accounts'),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
                 ...accounts.map(
                   (account) => PopupMenuItem<String>(
                     value: account.id,
@@ -342,6 +376,13 @@ class _MailSidebar extends StatelessWidget {
               ],
             ),
           ),
+          // Settings button at bottom
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.settings_outlined),
+            title: const Text('Settings'),
+            onTap: onSettings,
+          ),
         ],
       ),
     );
@@ -352,7 +393,7 @@ class _MailSidebar extends StatelessWidget {
           (a) => a.id == selectedAccountId,
           orElse: () => null,
         );
-    if (account == null) return '?';
+    if (account == null) return 'A';
     return (account.email as String)[0].toUpperCase();
   }
 
@@ -361,7 +402,7 @@ class _MailSidebar extends StatelessWidget {
           (a) => a.id == selectedAccountId,
           orElse: () => null,
         );
-    if (account == null) return 'Select Account';
+    if (account == null) return 'All Accounts';
     return account.email as String;
   }
 
@@ -748,12 +789,14 @@ class _EmailDetailPane extends ConsumerWidget {
     required this.onClose,
     required this.onToggleStar,
     required this.onDelete,
+    required this.onArchive,
     required this.onMarkUnread,
   });
 
   final VoidCallback onClose;
   final VoidCallback onToggleStar;
   final VoidCallback onDelete;
+  final VoidCallback onArchive;
   final VoidCallback onMarkUnread;
 
   @override
@@ -793,6 +836,7 @@ class _EmailDetailPane extends ConsumerWidget {
           onClose: onClose,
           onToggleStar: onToggleStar,
           onDelete: onDelete,
+          onArchive: onArchive,
           onMarkUnread: onMarkUnread,
         );
       },

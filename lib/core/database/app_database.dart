@@ -17,7 +17,7 @@ class AppDatabase {
   static Database? _database;
 
   /// Current database version for migrations.
-  static const int _version = 2;
+  static const int _version = 3;
 
   /// Database file name.
   static const String _databaseName = 'unifydesk.db';
@@ -60,6 +60,10 @@ class AppDatabase {
     if (oldVersion < 2) {
       await MailboxesTable.create(db);
       await EmailsTable.create(db);
+    }
+    if (oldVersion < 3) {
+      // Add settings columns to email_accounts table
+      await EmailAccountsTable.migrateV1ToV2(db);
     }
   }
 

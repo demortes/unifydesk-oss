@@ -15,6 +15,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_localizations:
+    sdk: flutter
+
   # UI & Design
   cupertino_icons: ^1.0.6
 
@@ -56,7 +59,7 @@ dependencies:
   crypto: ^3.0.3
 
   # Date & Time
-  intl: ^0.19.0
+  intl: ^0.20.2
   timezone: ^0.10.1
 
   # Utilities
@@ -137,3 +140,9 @@ flutter:
 # - Calendar and contact protocols may require specific packages or custom implementation
 # - OAuth configuration will need platform-specific setup (e.g., redirect URLs)
 # - For production, ensure all dependencies are up to date and security audited
+
+dependency_overrides:
+  # Temporary overrides to resolve SDK/package pinning conflicts while
+  # upstream dependencies are upgraded. Remove when packages are updated.
+  intl: ^0.20.2
+  pointycastle: ^4.0.0

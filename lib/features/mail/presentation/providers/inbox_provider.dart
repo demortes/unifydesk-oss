@@ -98,16 +98,79 @@ class InboxNotifier extends Notifier<InboxState> {
     return const InboxState();
   }
 
+  /// Resolve a unified mailbox key (e.g. 'ARCHIVE') to a real mailbox path
+  /// for a specific account, using that account's mailbox list.
+  String? _resolveMailboxPathForAccount(String mailboxKey, List<Mailbox> accountMailboxes) {
+    // If this is not one of the unified special keys, treat it as a real path
+    const special = ['INBOX', 'SENT', 'DRAFTS', 'JUNK', 'TRASH', 'ARCHIVE'];
+    if (!special.contains(mailboxKey)) return mailboxKey;
+
+    try {
+      if (mailboxKey == 'INBOX') {
+        final m = accountMailboxes.firstWhere((m) => m.isInbox);
+        return m.path;
+      }
+    } catch (_) {
+      // fallthrough to sensible defaults below
+    }
+
+    try {
+      if (mailboxKey == 'SENT') {
+        final m = accountMailboxes.firstWhere((m) => m.isSent);
+        return m.path;
+      }
+    } catch (_) {}
+
+    try {
+      if (mailboxKey == 'DRAFTS') {
+        final m = accountMailboxes.firstWhere((m) => m.isDrafts);
+        return m.path;
+      }
+    } catch (_) {}
+
+    try {
+      if (mailboxKey == 'JUNK') {
+        final m = accountMailboxes.firstWhere((m) => m.isJunk);
+        return m.path;
+      }
+    } catch (_) {}
+
+    try {
+      if (mailboxKey == 'TRASH') {
+        final m = accountMailboxes.firstWhere((m) => m.isTrash);
+        return m.path;
+      }
+    } catch (_) {}
+
+    // Archive: prefer an actual Archive mailbox, otherwise fallback to Trash if present
+    try {
+      if (mailboxKey == 'ARCHIVE') {
+        final m = accountMailboxes.firstWhere((m) => m.isArchive);
+        return m.path;
+      }
+    } catch (_) {
+      try {
+        final t = accountMailboxes.firstWhere((m) => m.isTrash);
+        return t.path;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    return null;
+  }
+
   /// Initialize inbox with the first account.
   Future<void> initialize() async {
     final accounts = await ref.read(allAccountsProvider.future);
     if (accounts.isEmpty) return;
 
-    await selectAccount(accounts.first.id);
+    // Default to unified view across all accounts
+    await selectAccount(null);
   }
 
   /// Select an account and load its mailboxes.
-  Future<void> selectAccount(String accountId) async {
+  Future<void> selectAccount(String? accountId) async {
     state = state.copyWith(
       selectedAccountId: accountId,
       isLoading: true,
@@ -115,7 +178,137 @@ class InboxNotifier extends Notifier<InboxState> {
     );
 
     try {
-      // Load cached mailboxes first
+      // If accountId is null, show unified mailboxes/emails across all accounts
+      if (accountId == null) {
+        final accounts = await ref.read(allAccountsProvider.future);
+
+        // Aggregate cached mailboxes for special folders
+        final Map<String, Mailbox> aggregated = {};
+        for (final acc in accounts) {
+          final cachedMailboxes = await _repository.getMailboxes(acc.id);
+          for (final m in cachedMailboxes) {
+            final key = m.isInbox
+                ? 'INBOX'
+                : m.isSent
+                    ? 'SENT'
+                    : m.isDrafts
+                        ? 'DRAFTS'
+                        : m.isTrash
+                            ? 'TRASH'
+                            : m.isJunk
+                                ? 'JUNK'
+                                : m.isArchive
+                                    ? 'ARCHIVE'
+                                    : m.path;
+
+            final existing = aggregated[key];
+            if (existing == null) {
+              aggregated[key] = Mailbox(
+                accountId: '',
+                name: m.name,
+                path: key,
+                delimiter: m.delimiter,
+                flags: m.flags,
+                totalMessages: m.totalMessages,
+                unreadMessages: m.unreadMessages,
+                isSelectable: m.isSelectable,
+                isSubscribed: m.isSubscribed,
+              );
+            } else {
+              aggregated[key] = existing.copyWith(
+                totalMessages: existing.totalMessages + m.totalMessages,
+                unreadMessages: existing.unreadMessages + m.unreadMessages,
+              );
+            }
+          }
+        }
+
+        // Ensure common special folders exist in the unified view
+        final commonKeys = {
+          'INBOX': 'Inbox',
+          'SENT': 'Sent',
+          'DRAFTS': 'Drafts',
+          'JUNK': 'Spam',
+          'TRASH': 'Trash',
+          'ARCHIVE': 'Archive',
+        };
+        for (final key in commonKeys.keys) {
+          if (!aggregated.containsKey(key)) {
+            aggregated[key] = Mailbox(
+              accountId: '',
+              name: commonKeys[key]!,
+              path: key,
+              delimiter: '/',
+              flags: const [],
+              totalMessages: 0,
+              unreadMessages: 0,
+              isSelectable: true,
+              isSubscribed: true,
+            );
+          }
+        }
+
+        // Order mailboxes so common folders appear first in a predictable order
+        final List<Mailbox> ordered = [];
+        for (final key in ['INBOX', 'SENT', 'DRAFTS', 'JUNK', 'TRASH', 'ARCHIVE']) {
+          if (aggregated.containsKey(key)) ordered.add(aggregated[key]!);
+        }
+        // Add any remaining non-special mailboxes alphabetically
+        final remaining = aggregated.keys
+            .where((k) => !['INBOX', 'SENT', 'DRAFTS', 'JUNK', 'TRASH', 'ARCHIVE'].contains(k))
+            .toList()
+          ..sort();
+        for (final k in remaining) {
+          ordered.add(aggregated[k]!);
+        }
+
+        state = state.copyWith(
+          mailboxes: ordered,
+          // default unified selection to INBOX
+          selectedMailboxPath: 'INBOX',
+        );
+
+        // Aggregate cached emails for selected mailbox path (default INBOX)
+        final List<EmailMessage> allEmails = [];
+        final selPath = state.selectedMailboxPath;
+        final List<String> failures = [];
+        for (final acc in accounts) {
+          try {
+            // Resolve special unified keys (e.g. ARCHIVE) to an actual mailbox path on the account
+            String? accountPath;
+            try {
+              final accountMailboxes = await _repository.getMailboxes(acc.id);
+              accountPath = _resolveMailboxPathForAccount(selPath, accountMailboxes);
+            } catch (e) {
+              accountPath = selPath;
+            }
+
+            if (accountPath == null) {
+              failures.add('${acc.displayLabel}: no matching mailbox for $selPath');
+              continue;
+            }
+
+            final cached = await _repository.getEmails(acc.id, accountPath);
+            allEmails.addAll(cached);
+          } catch (e) {
+            failures.add('${acc.displayLabel}: $e');
+          }
+        }
+
+        // Sort by date descending
+        allEmails.sort((a, b) => b.date.compareTo(a.date));
+
+        state = state.copyWith(emails: allEmails, isLoading: false);
+        if (allEmails.isEmpty && failures.isNotEmpty) {
+          state = state.copyWith(error: 'Failed to load emails for accounts: ${failures.join('; ')}');
+        }
+
+        // Sync in background across accounts
+        await syncMailboxes();
+        return;
+      }
+
+      // Single-account flow (unchanged)
       final cachedMailboxes = await _repository.getMailboxes(accountId);
       if (cachedMailboxes.isNotEmpty) {
         state = state.copyWith(mailboxes: cachedMailboxes);
@@ -141,11 +334,98 @@ class InboxNotifier extends Notifier<InboxState> {
   /// Sync mailboxes from server.
   Future<void> syncMailboxes() async {
     final accountId = state.selectedAccountId;
-    if (accountId == null) return;
-
     state = state.copyWith(isSyncing: true, clearError: true);
 
     try {
+      if (accountId == null) {
+        // Aggregate synced mailboxes across all accounts
+        final accounts = await ref.read(allAccountsProvider.future);
+        final Map<String, Mailbox> aggregated = {};
+        for (final acc in accounts) {
+          final mailboxes = await _repository.syncMailboxes(acc.id);
+          for (final m in mailboxes) {
+            final key = m.isInbox
+                ? 'INBOX'
+                : m.isSent
+                    ? 'SENT'
+                    : m.isDrafts
+                        ? 'DRAFTS'
+                        : m.isTrash
+                            ? 'TRASH'
+                            : m.isJunk
+                                ? 'JUNK'
+                                : m.isArchive
+                                    ? 'ARCHIVE'
+                                    : m.path;
+
+            final existing = aggregated[key];
+            if (existing == null) {
+              aggregated[key] = Mailbox(
+                accountId: '',
+                name: m.name,
+                path: key,
+                delimiter: m.delimiter,
+                flags: m.flags,
+                totalMessages: m.totalMessages,
+                unreadMessages: m.unreadMessages,
+                isSelectable: m.isSelectable,
+                isSubscribed: m.isSubscribed,
+              );
+            } else {
+              aggregated[key] = existing.copyWith(
+                totalMessages: existing.totalMessages + m.totalMessages,
+                unreadMessages: existing.unreadMessages + m.unreadMessages,
+              );
+            }
+          }
+        }
+
+        // Ensure common special folders exist in the unified view
+        final commonKeys = {
+          'INBOX': 'Inbox',
+          'SENT': 'Sent',
+          'DRAFTS': 'Drafts',
+          'JUNK': 'Spam',
+          'TRASH': 'Trash',
+          'ARCHIVE': 'Archive',
+        };
+        for (final key in commonKeys.keys) {
+          if (!aggregated.containsKey(key)) {
+            aggregated[key] = Mailbox(
+              accountId: '',
+              name: commonKeys[key]!,
+              path: key,
+              delimiter: '/',
+              flags: const [],
+              totalMessages: 0,
+              unreadMessages: 0,
+              isSelectable: true,
+              isSubscribed: true,
+            );
+          }
+        }
+
+        // Order mailboxes so common folders appear first in a predictable order
+        final List<Mailbox> ordered = [];
+        for (final key in ['INBOX', 'SENT', 'DRAFTS', 'JUNK', 'TRASH', 'ARCHIVE']) {
+          if (aggregated.containsKey(key)) ordered.add(aggregated[key]!);
+        }
+        // Add any remaining non-special mailboxes alphabetically
+        final remaining = aggregated.keys
+            .where((k) => !['INBOX', 'SENT', 'DRAFTS', 'JUNK', 'TRASH', 'ARCHIVE'].contains(k))
+            .toList()
+          ..sort();
+        for (final k in remaining) {
+          ordered.add(aggregated[k]!);
+        }
+
+        state = state.copyWith(mailboxes: ordered, isSyncing: false, selectedMailboxPath: 'INBOX');
+
+        // Sync emails for current mailbox across accounts
+        await syncEmails(fullSync: true);
+        return;
+      }
+
       final mailboxes = await _repository.syncMailboxes(accountId);
       state = state.copyWith(mailboxes: mailboxes, isSyncing: false);
 
@@ -162,11 +442,47 @@ class InboxNotifier extends Notifier<InboxState> {
   /// Sync emails from current mailbox.
   Future<void> syncEmails({bool fullSync = false}) async {
     final accountId = state.selectedAccountId;
-    if (accountId == null) return;
-
     state = state.copyWith(isSyncing: true, clearError: true);
 
     try {
+      if (accountId == null) {
+        // Aggregate emails from all accounts for the selected mailbox path
+        final accounts = await ref.read(allAccountsProvider.future);
+        final List<EmailMessage> allEmails = [];
+        final List<String> failures = [];
+        for (final acc in accounts) {
+          try {
+            String? accountPath;
+            try {
+              final accountMailboxes = await _repository.getMailboxes(acc.id);
+              accountPath = _resolveMailboxPathForAccount(state.selectedMailboxPath, accountMailboxes);
+            } catch (e) {
+              accountPath = state.selectedMailboxPath;
+            }
+
+            if (accountPath == null) {
+              failures.add('${acc.displayLabel}: no matching mailbox for ${state.selectedMailboxPath}');
+              continue;
+            }
+
+            final emails = await _repository.syncEmails(
+              acc.id,
+              accountPath,
+              fullSync: fullSync,
+            );
+            allEmails.addAll(emails);
+          } catch (e) {
+            failures.add('${acc.displayLabel}: $e');
+          }
+        }
+        allEmails.sort((a, b) => b.date.compareTo(a.date));
+        state = state.copyWith(emails: allEmails, isSyncing: false);
+        if (allEmails.isEmpty && failures.isNotEmpty) {
+          state = state.copyWith(error: 'Failed to sync emails for accounts: ${failures.join('; ')}');
+        }
+        return;
+      }
+
       final emails = await _repository.syncEmails(
         accountId,
         state.selectedMailboxPath,
@@ -183,8 +499,6 @@ class InboxNotifier extends Notifier<InboxState> {
 
   /// Select a mailbox.
   Future<void> selectMailbox(String mailboxPath) async {
-    if (state.selectedAccountId == null) return;
-
     state = state.copyWith(
       selectedMailboxPath: mailboxPath,
       isLoading: true,
@@ -192,7 +506,45 @@ class InboxNotifier extends Notifier<InboxState> {
     );
 
     try {
-      // Load cached emails
+      if (state.selectedAccountId == null) {
+        // Load cached emails across all accounts for this mailbox
+        final accounts = await ref.read(allAccountsProvider.future);
+        final List<EmailMessage> allEmails = [];
+        final List<String> failures = [];
+        for (final acc in accounts) {
+          try {
+            String? accountPath;
+            try {
+              final accountMailboxes = await _repository.getMailboxes(acc.id);
+              accountPath = _resolveMailboxPathForAccount(mailboxPath, accountMailboxes);
+            } catch (e) {
+              accountPath = mailboxPath;
+            }
+
+            if (accountPath == null) {
+              failures.add('${acc.displayLabel}: no matching mailbox for $mailboxPath');
+              continue;
+            }
+
+            final cached = await _repository.getEmails(acc.id, accountPath);
+            allEmails.addAll(cached);
+          } catch (e) {
+            failures.add('${acc.displayLabel}: $e');
+          }
+        }
+        allEmails.sort((a, b) => b.date.compareTo(a.date));
+        state = state.copyWith(emails: allEmails, isLoading: false);
+
+        if (allEmails.isEmpty && failures.isNotEmpty) {
+          state = state.copyWith(error: 'Failed to load mailbox "$mailboxPath" for accounts: ${failures.join('; ')}');
+        }
+
+        // Sync in background across accounts
+        await syncEmails();
+        return;
+      }
+
+      // Single-account mailbox
       final cachedEmails = await _repository.getEmails(
         state.selectedAccountId!,
         mailboxPath,
@@ -227,11 +579,9 @@ class InboxNotifier extends Notifier<InboxState> {
 
   /// Mark email as read.
   Future<void> markAsRead(EmailMessage email) async {
-    if (state.selectedAccountId == null) return;
-
     try {
       await _repository.setReadStatus(
-        state.selectedAccountId!,
+        email.accountId,
         email.mailboxName,
         email.id,
         email.uid,
@@ -254,11 +604,9 @@ class InboxNotifier extends Notifier<InboxState> {
 
   /// Mark email as unread.
   Future<void> markAsUnread(EmailMessage email) async {
-    if (state.selectedAccountId == null) return;
-
     try {
       await _repository.setReadStatus(
-        state.selectedAccountId!,
+        email.accountId,
         email.mailboxName,
         email.id,
         email.uid,
@@ -280,11 +628,9 @@ class InboxNotifier extends Notifier<InboxState> {
 
   /// Toggle email starred status.
   Future<void> toggleStarred(EmailMessage email) async {
-    if (state.selectedAccountId == null) return;
-
     try {
       await _repository.setStarredStatus(
-        state.selectedAccountId!,
+        email.accountId,
         email.mailboxName,
         email.id,
         email.uid,
@@ -306,25 +652,117 @@ class InboxNotifier extends Notifier<InboxState> {
 
   /// Delete email.
   Future<void> deleteEmail(EmailMessage email) async {
-    if (state.selectedAccountId == null) return;
-
+    // Prefer archiving: if an Archive mailbox exists, move the email there
     try {
+      Mailbox? archiveMailbox;
+      try {
+        // Prefer account-specific archive mailbox when available
+        final accountMailboxes = await _repository.getMailboxes(email.accountId);
+        try {
+          archiveMailbox = accountMailboxes.firstWhere((m) => m.isArchive);
+        } catch (_) {
+          // If no archive mailbox, prefer Trash as a safer fallback
+          try {
+            archiveMailbox = accountMailboxes.firstWhere((m) => m.isTrash);
+          } catch (_) {
+            archiveMailbox = null;
+          }
+        }
+      } catch (_) {
+        archiveMailbox = null;
+      }
+
+      if (archiveMailbox != null && archiveMailbox.path != email.mailboxName) {
+        await _repository.moveEmail(
+          email.accountId,
+          email.mailboxName,
+          archiveMailbox.path,
+          email.id,
+          email.uid,
+        );
+
+        // Remove from local state view
+        final updatedEmails = state.emails.where((e) => e.id != email.id).toList();
+        state = state.copyWith(
+          emails: updatedEmails,
+          clearSelectedEmail: state.selectedEmailId == email.id,
+        );
+        return;
+      }
+
+      // No archive mailbox found — perform delete
       await _repository.deleteEmail(
-        state.selectedAccountId!,
+        email.accountId,
         email.mailboxName,
         email.id,
         email.uid,
       );
 
       // Remove from local state
-      final updatedEmails =
-          state.emails.where((e) => e.id != email.id).toList();
+      final updatedEmails = state.emails.where((e) => e.id != email.id).toList();
       state = state.copyWith(
         emails: updatedEmails,
         clearSelectedEmail: state.selectedEmailId == email.id,
       );
     } catch (e) {
       state = state.copyWith(error: 'Failed to delete email: $e');
+    }
+  }
+
+  /// Archive email by moving it to the account's Archive mailbox.
+  Future<void> archiveEmail(EmailMessage email) async {
+    try {
+      Mailbox? archiveMailbox;
+      try {
+        final accountMailboxes = await _repository.getMailboxes(email.accountId);
+        try {
+          archiveMailbox = accountMailboxes.firstWhere((m) => m.isArchive);
+        } catch (_) {
+          try {
+            archiveMailbox = accountMailboxes.firstWhere((m) => m.isTrash);
+          } catch (_) {
+            archiveMailbox = null;
+          }
+        }
+      } catch (_) {
+        archiveMailbox = null;
+      }
+
+      if (archiveMailbox == null) {
+        // Try to create an Archive mailbox on the account and retry
+        try {
+          await _repository.createMailbox(email.accountId, 'Archive');
+          final refreshed = await _repository.getMailboxes(email.accountId);
+          try {
+            archiveMailbox = refreshed.firstWhere((m) => m.isArchive);
+          } catch (_) {
+            archiveMailbox = null;
+          }
+        } catch (_) {
+          archiveMailbox = null;
+        }
+      }
+
+      if (archiveMailbox == null) return;
+
+      if (archiveMailbox.path == email.mailboxName) return;
+
+      await _repository.moveEmail(
+        email.accountId,
+        email.mailboxName,
+        archiveMailbox.path,
+        email.id,
+        email.uid,
+      );
+
+      // Remove from local state view
+      final updatedEmails = state.emails.where((e) => e.id != email.id).toList();
+      state = state.copyWith(
+        emails: updatedEmails,
+        clearSelectedEmail: state.selectedEmailId == email.id,
+      );
+    } catch (e) {
+      state = state.copyWith(error: 'Failed to archive email: $e');
     }
   }
 
@@ -400,16 +838,12 @@ final selectedEmailProvider = FutureProvider<EmailMessage?>((ref) async {
     return email;
   }
 
-  // Otherwise, fetch full content from server
-  if (inboxState.selectedAccountId != null) {
-    final repository = ref.read(emailRepositoryProvider);
-    final fullEmail = await repository.fetchFullEmail(
-      inboxState.selectedAccountId!,
-      email.mailboxName,
-      email.uid,
-    );
-    return fullEmail ?? email;
-  }
-
-  return email;
+  // Otherwise, fetch full content from server using the email's account id
+  final repository = ref.read(emailRepositoryProvider);
+  final fullEmail = await repository.fetchFullEmail(
+    email.accountId,
+    email.mailboxName,
+    email.uid,
+  );
+  return fullEmail ?? email;
 });

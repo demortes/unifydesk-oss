@@ -13,6 +13,7 @@ class EmailDetailView extends StatelessWidget {
     required this.onClose,
     required this.onToggleStar,
     required this.onDelete,
+    required this.onArchive,
     required this.onMarkUnread,
   });
 
@@ -20,6 +21,7 @@ class EmailDetailView extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onToggleStar;
   final VoidCallback onDelete;
+  final VoidCallback onArchive;
   final VoidCallback onMarkUnread;
 
   @override
@@ -57,6 +59,11 @@ class EmailDetailView extends StatelessWidget {
                 icon: const Icon(Icons.mark_email_unread_outlined),
                 onPressed: onMarkUnread,
                 tooltip: 'Mark as unread',
+              ),
+              IconButton(
+                icon: const Icon(Icons.archive_outlined),
+                onPressed: onArchive,
+                tooltip: 'Archive',
               ),
               IconButton(
                 icon: const Icon(Icons.delete_outline),
@@ -318,13 +325,24 @@ class _HtmlBodyView extends StatelessWidget {
     // Clean up email HTML for flutter_html compatibility
     final cleanedHtml = _cleanEmailHtml(html);
     debugPrint(
-      'Cleaned HTML: ${cleanedHtml.length} chars (from ${html.length})',
+      'Email render: cleanedHtml=${cleanedHtml.length} (orig=${html.length})',
     );
 
-    // Render HTML with flutter_html
-    return Html(
-      data: cleanedHtml,
-      onLinkTap: (url, _, __) => _launchUrl(url),
+    // If cleaning removed most content, fall back to plain text to ensure
+    // users still see the message. Also catch render errors from flutter_html
+    // and show fallback text instead of an empty pane.
+    if (cleanedHtml.trim().isEmpty || cleanedHtml.trim() == '<html>') {
+      debugPrint('Html rendering skipped: cleaned HTML empty — showing fallback');
+      return SelectableText(
+        fallbackText,
+        style: theme.textTheme.bodyMedium,
+      );
+    }
+
+    try {
+      return Html(
+        data: cleanedHtml,
+        onLinkTap: (url, _, __) => _launchUrl(url),
       style: {
         '*': Style(
           color: theme.textTheme.bodyMedium?.color,
@@ -352,7 +370,14 @@ class _HtmlBodyView extends StatelessWidget {
           width: Width(100, Unit.percent),
         ),
       },
-    );
+      );
+    } catch (e, st) {
+      debugPrint('Html render failed: $e\n$st');
+      return SelectableText(
+        fallbackText,
+        style: theme.textTheme.bodyMedium,
+      );
+    }
   }
 
   /// Clean email HTML to make it compatible with flutter_html.

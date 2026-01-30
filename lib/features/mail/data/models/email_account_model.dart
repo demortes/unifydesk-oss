@@ -12,11 +12,15 @@ class EmailAccountModel {
     required this.createdAt,
     required this.updatedAt,
     this.displayName,
+    this.signature,
+    this.replyTo,
     this.imapHost,
     this.imapPort,
     this.smtpHost,
     this.smtpPort,
     this.useSsl = true,
+    this.syncFrequencyMinutes = 15,
+    this.isActive = true,
   });
 
   /// Create from database row.
@@ -25,6 +29,8 @@ class EmailAccountModel {
       id: map[EmailAccountsTable.columnId] as String,
       email: map[EmailAccountsTable.columnEmail] as String,
       displayName: map[EmailAccountsTable.columnDisplayName] as String?,
+      signature: map[EmailAccountsTable.columnSignature] as String?,
+      replyTo: map[EmailAccountsTable.columnReplyTo] as String?,
       providerType:
           _parseProvider(map[EmailAccountsTable.columnProviderType] as String),
       authType:
@@ -34,6 +40,9 @@ class EmailAccountModel {
       smtpHost: map[EmailAccountsTable.columnSmtpHost] as String?,
       smtpPort: map[EmailAccountsTable.columnSmtpPort] as int?,
       useSsl: (map[EmailAccountsTable.columnUseSsl] as int?) == 1,
+      syncFrequencyMinutes:
+          (map[EmailAccountsTable.columnSyncFrequencyMinutes] as int?) ?? 15,
+      isActive: (map[EmailAccountsTable.columnIsActive] as int?) != 0,
       createdAt: DateTime.fromMillisecondsSinceEpoch(
         map[EmailAccountsTable.columnCreatedAt] as int,
       ),
@@ -49,6 +58,8 @@ class EmailAccountModel {
       id: entity.id,
       email: entity.email,
       displayName: entity.displayName,
+      signature: entity.signature,
+      replyTo: entity.replyTo,
       providerType: entity.providerType,
       authType: entity.authType,
       imapHost: entity.imapHost,
@@ -56,6 +67,8 @@ class EmailAccountModel {
       smtpHost: entity.smtpHost,
       smtpPort: entity.smtpPort,
       useSsl: entity.useSsl,
+      syncFrequencyMinutes: entity.syncFrequencyMinutes,
+      isActive: entity.isActive,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt ?? entity.createdAt,
     );
@@ -64,6 +77,8 @@ class EmailAccountModel {
   final String id;
   final String email;
   final String? displayName;
+  final String? signature;
+  final String? replyTo;
   final MailProvider providerType;
   final AuthType authType;
   final String? imapHost;
@@ -71,6 +86,8 @@ class EmailAccountModel {
   final String? smtpHost;
   final int? smtpPort;
   final bool useSsl;
+  final int syncFrequencyMinutes;
+  final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -80,6 +97,8 @@ class EmailAccountModel {
       EmailAccountsTable.columnId: id,
       EmailAccountsTable.columnEmail: email,
       EmailAccountsTable.columnDisplayName: displayName,
+      EmailAccountsTable.columnSignature: signature,
+      EmailAccountsTable.columnReplyTo: replyTo,
       EmailAccountsTable.columnProviderType: providerType.name,
       EmailAccountsTable.columnAuthType: authType.name,
       EmailAccountsTable.columnImapHost: imapHost,
@@ -87,6 +106,8 @@ class EmailAccountModel {
       EmailAccountsTable.columnSmtpHost: smtpHost,
       EmailAccountsTable.columnSmtpPort: smtpPort,
       EmailAccountsTable.columnUseSsl: useSsl ? 1 : 0,
+      EmailAccountsTable.columnSyncFrequencyMinutes: syncFrequencyMinutes,
+      EmailAccountsTable.columnIsActive: isActive ? 1 : 0,
       EmailAccountsTable.columnCreatedAt: createdAt.millisecondsSinceEpoch,
       EmailAccountsTable.columnUpdatedAt: updatedAt.millisecondsSinceEpoch,
     };
@@ -98,6 +119,8 @@ class EmailAccountModel {
       id: id,
       email: email,
       displayName: displayName,
+      signature: signature,
+      replyTo: replyTo,
       providerType: providerType,
       authType: authType,
       imapHost: imapHost,
@@ -105,6 +128,8 @@ class EmailAccountModel {
       smtpHost: smtpHost,
       smtpPort: smtpPort,
       useSsl: useSsl,
+      syncFrequencyMinutes: syncFrequencyMinutes,
+      isActive: isActive,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

@@ -54,8 +54,31 @@ class Mailbox extends Equatable {
       flags.contains(r'\Junk') ||
       path.toLowerCase().contains('spam') ||
       path.toLowerCase().contains('junk');
-  bool get isArchive =>
-      flags.contains(r'\Archive') || path.toLowerCase().contains('archive');
+    bool get isArchive =>
+        flags.contains(r'\Archive') ||
+        _archiveNameVariants.any((v) => path.toLowerCase().contains(v)) ||
+        _archiveNameVariants.any((v) => name.toLowerCase().contains(v));
+
+    // Common archive name variants in various languages (lowercase)
+    static const List<String> _archiveNameVariants = [
+      'archive', // English
+      'archives',
+      'archiv', // German
+      'archief', // Dutch
+      'archivo', // Spanish
+      'archivio', // Italian
+      'arquivo', // Portuguese
+      'arkiv', // Swedish/Norwegian/Danish
+      'архив', // Russian
+      'арşив', // Turkish transliteration (rare)
+      'арҳів', // Ukrainian (approx)
+      'архів', // Ukrainian
+      'archivar',
+      'arkisto', // Finnish
+      'arkisto',
+      'arkiv',
+      'archív',
+    ];
 
   /// Get an icon for this mailbox type.
   String get iconName {

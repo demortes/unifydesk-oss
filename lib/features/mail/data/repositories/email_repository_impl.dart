@@ -5,6 +5,7 @@ import '../../domain/repositories/account_repository.dart';
 import '../../domain/repositories/email_repository.dart';
 import '../datasources/email_local_datasource.dart';
 import '../datasources/imap_remote_datasource.dart';
+import 'package:intl/intl.dart';
 
 /// Implementation of EmailRepository.
 class EmailRepositoryImpl implements EmailRepository {
@@ -219,6 +220,65 @@ class EmailRepositoryImpl implements EmailRepository {
 
     // Delete locally (will be re-synced in new location)
     await _localDataSource.deleteEmail(emailId);
+  }
+
+  @override
+  Future<void> createMailbox(String accountId, String mailboxPath) async {
+    final account = await _getAccount(accountId);
+    // Try a set of name variants to accommodate localization and server naming
+    final locale = Intl.getCurrentLocale();
+    final lang = locale.split('_').first.toLowerCase();
+
+    final Map<String, String> localePreferred = {
+      'en': 'Archive',
+      'es': 'Archivo',
+      'fr': 'Archive',
+      'de': 'Archiv',
+      'it': 'Archivio',
+      'pt': 'Arquivo',
+      'nl': 'Archief',
+      'sv': 'Arkiv',
+      'fi': 'Arkisto',
+      'ru': 'Архив',
+      'uk': 'Архів',
+      'tr': 'Arşiv',
+    };
+
+    final defaultCandidates = [
+      localePreferred[lang] ?? 'Archive',
+      'Archive',
+      'Archives',
+      'Archived',
+      'Archiv',
+      'Archief',
+      'Archivo',
+      'Archivio',
+      'Arquivo',
+      'Arkiv',
+      'Arkisto',
+      'Архив',
+      'Архів',
+      'Arşiv',
+    ];
+
+    // Attempt to create each candidate until one succeeds
+    for (final candidate in defaultCandidates) {
+      try {
+        await _remoteDataSource.createMailbox(account, candidate);
+        // Refresh local mailbox list after successful creation
+        await syncMailboxes(accountId);
+        return;
+      } catch (_) {
+        // Ignore and try next candidate
+      }
+    }
+
+    // If all attempts failed, still refresh mailboxes to pick up any server-side changes
+    try {
+      await syncMailboxes(accountId);
+    } catch (_) {
+      // ignore
+    }
   }
 
   @override

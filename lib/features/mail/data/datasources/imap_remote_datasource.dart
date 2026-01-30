@@ -272,6 +272,23 @@ class ImapRemoteDataSource {
     await _client!.uidMove(sequence, targetMailbox: targetMb);
   }
 
+  /// Create a mailbox/folder on the server.
+  Future<void> createMailbox(EmailAccount account, String mailboxPath) async {
+    await connect(account);
+
+    try {
+      // ImapClient provides mailbox creation; create if not exists
+      final mailboxes = await _client!.listMailboxes();
+      final exists = mailboxes.any((mb) => mb.path == mailboxPath || mb.name == mailboxPath);
+      if (!exists) {
+        await _client!.createMailbox(mailboxPath);
+      }
+    } catch (e) {
+      _logger.e('Failed to create mailbox $mailboxPath: $e');
+      rethrow;
+    }
+  }
+
   /// Delete email (move to trash or permanent delete).
   Future<void> deleteEmail(
     EmailAccount account,
