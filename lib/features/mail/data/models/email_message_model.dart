@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import '../../../../core/database/tables/emails_table.dart';
 import '../../domain/entities/email_message.dart';
@@ -18,6 +19,7 @@ class EmailMessageModel extends EmailMessage {
     super.bcc = const [],
     super.textBody,
     super.htmlBody,
+    super.rawSource,
     super.isRead = false,
     super.isStarred = false,
     super.isDraft = false,
@@ -45,6 +47,8 @@ class EmailMessageModel extends EmailMessage {
       subject: map[EmailsTable.colSubject] as String? ?? '',
       textBody: map[EmailsTable.colTextBody] as String?,
       htmlBody: map[EmailsTable.colHtmlBody] as String?,
+        // raw server source stored as BLOB (Uint8List) if present
+        rawSource: map[EmailsTable.colRawSource] as Uint8List?,
       date: DateTime.fromMillisecondsSinceEpoch(
         map[EmailsTable.colDate] as int,
       ),
@@ -86,6 +90,7 @@ class EmailMessageModel extends EmailMessage {
       inReplyTo: entity.inReplyTo,
       references: entity.references,
       syncedAt: entity.syncedAt,
+        rawSource: entity.rawSource,
     );
   }
 
@@ -104,6 +109,7 @@ class EmailMessageModel extends EmailMessage {
       EmailsTable.colSubject: subject,
       EmailsTable.colTextBody: textBody,
       EmailsTable.colHtmlBody: htmlBody,
+        EmailsTable.colRawSource: rawSource,
       EmailsTable.colDate: date.millisecondsSinceEpoch,
       EmailsTable.colIsRead: isRead ? 1 : 0,
       EmailsTable.colIsStarred: isStarred ? 1 : 0,

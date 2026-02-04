@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 import '../../domain/entities/email_account.dart';
 import '../../domain/entities/email_message.dart';
 import '../../domain/entities/mailbox.dart';
@@ -5,7 +7,6 @@ import '../../domain/repositories/account_repository.dart';
 import '../../domain/repositories/email_repository.dart';
 import '../datasources/email_local_datasource.dart';
 import '../datasources/imap_remote_datasource.dart';
-import 'package:intl/intl.dart';
 
 /// Implementation of EmailRepository.
 class EmailRepositoryImpl implements EmailRepository {

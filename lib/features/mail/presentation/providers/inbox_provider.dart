@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:unifydesk/core/services/network_metered_service.dart';
+import 'package:logger/logger.dart';
 
 import '../../data/datasources/email_local_datasource.dart';
 import '../../data/datasources/imap_remote_datasource.dart';
@@ -29,6 +33,8 @@ class InboxState {
     this.isSyncing = false,
     this.error,
     this.selectedEmailId,
+    this.prefetchSuccessCount = 0,
+    this.prefetchFailureCount = 0,
   });
 
   final String? selectedAccountId;
@@ -39,6 +45,8 @@ class InboxState {
   final bool isSyncing;
   final String? error;
   final String? selectedEmailId;
+  final int prefetchSuccessCount;
+  final int prefetchFailureCount;
 
   InboxState copyWith({
     String? selectedAccountId,
@@ -49,6 +57,8 @@ class InboxState {
     bool? isSyncing,
     String? error,
     String? selectedEmailId,
+    int? prefetchSuccessCount,
+    int? prefetchFailureCount,
     bool clearError = false,
     bool clearSelectedEmail = false,
   }) {
@@ -62,6 +72,8 @@ class InboxState {
       error: clearError ? null : (error ?? this.error),
       selectedEmailId:
           clearSelectedEmail ? null : (selectedEmailId ?? this.selectedEmailId),
+      prefetchSuccessCount: prefetchSuccessCount ?? this.prefetchSuccessCount,
+      prefetchFailureCount: prefetchFailureCount ?? this.prefetchFailureCount,
     );
   }
 
@@ -88,13 +100,38 @@ class InboxState {
   int get totalUnread => inboxMailbox?.unreadMessages ?? 0;
 }
 
+/// Simple lifecycle observer that reports active/background state via callback.
+class _LifecycleObserver with WidgetsBindingObserver {
+  _LifecycleObserver(this._onActiveChanged);
+
+  final void Function(bool active) _onActiveChanged;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _onActiveChanged(state == AppLifecycleState.resumed);
+  }
+}
+
 /// Notifier for inbox state management.
 class InboxNotifier extends Notifier<InboxState> {
   late EmailRepository _repository;
+  final Logger _logger = Logger();
+  bool _isLifecycleObserverAttached = false;
+  bool _isAppActive = true;
+
+  static const int _defaultPrefetchDelaySeconds = 2;
 
   @override
   InboxState build() {
     _repository = ref.watch(emailRepositoryProvider);
+    // Attach lifecycle observer once
+    if (!_isLifecycleObserverAttached) {
+      WidgetsBinding.instance.addObserver(_LifecycleObserver((active) {
+        _isAppActive = active;
+      }),);
+      _isLifecycleObserverAttached = true;
+    }
+
     return const InboxState();
   }
 
@@ -167,6 +204,9 @@ class InboxNotifier extends Notifier<InboxState> {
 
     // Default to unified view across all accounts
     await selectAccount(null);
+    // Start background prefetch of common mailboxes to warm cache
+    // Do not await to avoid blocking UI initialization
+    unawaited(prefetchCommonMailboxes());
   }
 
   /// Select an account and load its mailboxes.
@@ -238,12 +278,6 @@ class InboxNotifier extends Notifier<InboxState> {
               accountId: '',
               name: commonKeys[key]!,
               path: key,
-              delimiter: '/',
-              flags: const [],
-              totalMessages: 0,
-              unreadMessages: 0,
-              isSelectable: true,
-              isSubscribed: true,
             );
           }
         }
@@ -305,6 +339,8 @@ class InboxNotifier extends Notifier<InboxState> {
 
         // Sync in background across accounts
         await syncMailboxes();
+        // Kick off prefetch for common folders in background
+        unawaited(prefetchCommonMailboxes());
         return;
       }
 
@@ -323,11 +359,104 @@ class InboxNotifier extends Notifier<InboxState> {
 
       // Sync in background
       await syncMailboxes();
+      // Kick off prefetch of common folders for this account
+      unawaited(prefetchCommonMailboxes());
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
       );
+    }
+  }
+
+  /// Prefetch common mailboxes (INBOX, Sent, Drafts, Junk, Trash, Archive)
+  /// across accounts and warm the local DB/cache with recent messages and
+  /// optionally their full bodies to speed up rendering when the user opens
+  /// a mailbox or message.
+  Future<void> prefetchCommonMailboxes({int fullEmailPrefetchCount = 3}) async {
+    // Short delay before prefetch to avoid fighting immediate user actions
+    await Future.delayed(const Duration(seconds: _defaultPrefetchDelaySeconds));
+
+    try {
+      final accounts = await ref.read(allAccountsProvider.future);
+      final commonKeys = ['INBOX', 'SENT', 'DRAFTS', 'JUNK', 'TRASH', 'ARCHIVE'];
+
+      // For each account, resolve the mailbox paths for common keys.
+      final List<Future<void>> accountTasks = [];
+      for (final acc in accounts) {
+        // Respect per-account prefetch setting
+        if (!acc.prefetchEnabled) {
+          _logger.d('Prefetch disabled for account ${acc.email}');
+          continue;
+        }
+        accountTasks.add(Future(() async {
+          try {
+            final accountMailboxes = await _repository.getMailboxes(acc.id);
+            final paths = <String>[];
+            for (final key in commonKeys) {
+              final path = _resolveMailboxPathForAccount(key, accountMailboxes);
+              if (path != null && !paths.contains(path)) paths.add(path);
+            }
+
+            // Fetch messages for each common mailbox concurrently but limited
+            // to avoid hammering the server.
+            const concurrency = 3;
+            for (var i = 0; i < paths.length; i += concurrency) {
+              final chunk = paths.sublist(i, (i + concurrency) > paths.length ? paths.length : i + concurrency);
+              await Future.wait(chunk.map((p) => _repository.syncEmails(acc.id, p).catchError((_) => <EmailMessage>[])));
+            }
+
+            // Optionally fetch full bodies for top N recent messages per mailbox
+            for (final p in paths) {
+              try {
+                final emails = await _repository.getEmails(acc.id, p, limit: acc.prefetchCount);
+                int success = 0;
+                int failure = 0;
+                for (final e in emails.take(acc.prefetchCount)) {
+                  try {
+                    // Pause if app is backgrounded
+                    if (!_isAppActive) {
+                      _logger.d('App backgrounded — pausing prefetch');
+                      break;
+                    }
+
+                    // Pause on metered networks (treat mobile as metered)
+                    final isMetered = await ref.read(networkMeteredServiceProvider).isActiveNetworkMetered();
+                    if (isMetered) {
+                      _logger.d('Metered network detected — skipping prefetch for ${acc.email}');
+                      break;
+                    }
+
+                    await _repository.fetchFullEmail(acc.id, p, e.uid);
+                    success++;
+                    _logger.d('Prefetched full email ${e.uid} from $p for ${acc.email}');
+                  } catch (err) {
+                    failure++;
+                    _logger.w('Prefetch failed for ${acc.email} $p uid=${e.uid}: $err');
+                  }
+                }
+
+                // Update simple counters in state for metrics
+                if (success > 0 || failure > 0) {
+                  state = state.copyWith(
+                    prefetchSuccessCount: state.prefetchSuccessCount + success,
+                    prefetchFailureCount: state.prefetchFailureCount + failure,
+                  );
+                }
+              } catch (_) {}
+            }
+          } catch (_) {}
+        }),);
+      }
+
+      // Run account tasks with limited concurrency
+      const accountConcurrency = 2;
+      for (var i = 0; i < accountTasks.length; i += accountConcurrency) {
+        final chunk = accountTasks.sublist(i, (i + accountConcurrency) > accountTasks.length ? accountTasks.length : i + accountConcurrency);
+        await Future.wait(chunk);
+      }
+    } catch (_) {
+      // Ignore prefetch errors silently
     }
   }
 
@@ -395,12 +524,6 @@ class InboxNotifier extends Notifier<InboxState> {
               accountId: '',
               name: commonKeys[key]!,
               path: key,
-              delimiter: '/',
-              flags: const [],
-              totalMessages: 0,
-              unreadMessages: 0,
-              isSelectable: true,
-              isSubscribed: true,
             );
           }
         }

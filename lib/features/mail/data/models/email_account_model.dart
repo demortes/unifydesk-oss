@@ -21,6 +21,8 @@ class EmailAccountModel {
     this.useSsl = true,
     this.syncFrequencyMinutes = 15,
     this.isActive = true,
+    this.prefetchEnabled = true,
+    this.prefetchCount = 3,
   });
 
   /// Create from database row.
@@ -49,6 +51,8 @@ class EmailAccountModel {
       updatedAt: DateTime.fromMillisecondsSinceEpoch(
         map[EmailAccountsTable.columnUpdatedAt] as int,
       ),
+      prefetchEnabled: (map[EmailAccountsTable.columnPrefetchEnabled] as int?) != 0,
+      prefetchCount: (map[EmailAccountsTable.columnPrefetchCount] as int?) ?? 3,
     );
   }
 
@@ -69,6 +73,8 @@ class EmailAccountModel {
       useSsl: entity.useSsl,
       syncFrequencyMinutes: entity.syncFrequencyMinutes,
       isActive: entity.isActive,
+      prefetchEnabled: entity.prefetchEnabled,
+      prefetchCount: entity.prefetchCount,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt ?? entity.createdAt,
     );
@@ -88,6 +94,8 @@ class EmailAccountModel {
   final bool useSsl;
   final int syncFrequencyMinutes;
   final bool isActive;
+  final bool prefetchEnabled;
+  final int prefetchCount;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -108,6 +116,8 @@ class EmailAccountModel {
       EmailAccountsTable.columnUseSsl: useSsl ? 1 : 0,
       EmailAccountsTable.columnSyncFrequencyMinutes: syncFrequencyMinutes,
       EmailAccountsTable.columnIsActive: isActive ? 1 : 0,
+      EmailAccountsTable.columnPrefetchEnabled: prefetchEnabled ? 1 : 0,
+      EmailAccountsTable.columnPrefetchCount: prefetchCount,
       EmailAccountsTable.columnCreatedAt: createdAt.millisecondsSinceEpoch,
       EmailAccountsTable.columnUpdatedAt: updatedAt.millisecondsSinceEpoch,
     };
@@ -130,6 +140,8 @@ class EmailAccountModel {
       useSsl: useSsl,
       syncFrequencyMinutes: syncFrequencyMinutes,
       isActive: isActive,
+      prefetchEnabled: prefetchEnabled,
+      prefetchCount: prefetchCount,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

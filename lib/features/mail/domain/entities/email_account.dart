@@ -23,6 +23,8 @@ class EmailAccount extends Equatable {
     this.useSsl = true,
     this.syncFrequencyMinutes = 15,
     this.isActive = true,
+    this.prefetchEnabled = true,
+    this.prefetchCount = 3,
     this.updatedAt,
   });
 
@@ -67,6 +69,10 @@ class EmailAccount extends Equatable {
 
   /// Whether this account is active (enabled for sync).
   final bool isActive;
+  /// Whether background prefetching is enabled for this account.
+  final bool prefetchEnabled;
+  /// How many recent messages per mailbox to prefetch full bodies for.
+  final int prefetchCount;
 
   /// When this account was created.
   final DateTime createdAt;
@@ -113,6 +119,8 @@ class EmailAccount extends Equatable {
     bool? useSsl,
     int? syncFrequencyMinutes,
     bool? isActive,
+    bool? prefetchEnabled,
+    int? prefetchCount,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool clearDisplayName = false,
@@ -134,6 +142,8 @@ class EmailAccount extends Equatable {
       useSsl: useSsl ?? this.useSsl,
       syncFrequencyMinutes: syncFrequencyMinutes ?? this.syncFrequencyMinutes,
       isActive: isActive ?? this.isActive,
+      prefetchEnabled: prefetchEnabled ?? this.prefetchEnabled,
+      prefetchCount: prefetchCount ?? this.prefetchCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -155,6 +165,8 @@ class EmailAccount extends Equatable {
         useSsl,
         syncFrequencyMinutes,
         isActive,
+        prefetchEnabled,
+        prefetchCount,
         createdAt,
         updatedAt,
       ];

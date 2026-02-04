@@ -49,7 +49,7 @@ class SettingsPage extends ConsumerWidget {
                     .map((account) => _AccountCard(
                           account: account,
                           onTap: () => _openAccountSettings(context, ref, account),
-                        ))
+                        ),)
                     .toList(),
               );
             },
@@ -227,7 +227,7 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  void _openAccountSettings(
+  Future<void> _openAccountSettings(
     BuildContext context,
     WidgetRef ref,
     EmailAccount account,
@@ -239,7 +239,7 @@ class SettingsPage extends ConsumerWidget {
     );
 
     // Refresh accounts list if an account was deleted
-    if (deleted == true) {
+    if (deleted ?? false) {
       ref.invalidate(accountsListProvider);
     }
   }

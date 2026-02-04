@@ -27,6 +27,8 @@ class EmailAccountsTable {
   static const String columnIsActive = 'is_active';
   static const String columnCreatedAt = 'created_at';
   static const String columnUpdatedAt = 'updated_at';
+  static const String columnPrefetchEnabled = 'prefetch_enabled';
+  static const String columnPrefetchCount = 'prefetch_count';
 
   /// Create the table.
   static Future<void> create(Database db) async {
@@ -46,6 +48,8 @@ class EmailAccountsTable {
         $columnUseSsl INTEGER DEFAULT 1,
         $columnSyncFrequencyMinutes INTEGER DEFAULT 15,
         $columnIsActive INTEGER DEFAULT 1,
+        $columnPrefetchEnabled INTEGER DEFAULT 1,
+        $columnPrefetchCount INTEGER DEFAULT 3,
         $columnCreatedAt INTEGER NOT NULL,
         $columnUpdatedAt INTEGER NOT NULL
       )

@@ -127,18 +127,18 @@ class AccountSettingsNotifier {
           syncFrequencyMinutes: account.syncFrequencyMinutes,
           isActive: account.isActive,
           isLoading: false,
-        ));
+        ),);
       } else {
         _updateState(_state.copyWith(
           isLoading: false,
           error: 'Account not found',
-        ));
+        ),);
       }
     } catch (e) {
       _updateState(_state.copyWith(
         isLoading: false,
         error: 'Failed to load account: $e',
-      ));
+      ),);
     }
   }
 
@@ -156,7 +156,7 @@ class AccountSettingsNotifier {
 
   void setSyncFrequency(int minutes) {
     _updateState(
-        _state.copyWith(syncFrequencyMinutes: minutes, clearError: true));
+        _state.copyWith(syncFrequencyMinutes: minutes, clearError: true),);
   }
 
   void setActive(bool value) {
@@ -170,7 +170,7 @@ class AccountSettingsNotifier {
       isSaving: true,
       clearError: true,
       clearSuccess: true,
-    ));
+    ),);
 
     try {
       final updatedAccount = _state.account!.copyWith(
@@ -192,14 +192,14 @@ class AccountSettingsNotifier {
         account: updatedAccount,
         isSaving: false,
         successMessage: 'Settings saved successfully',
-      ));
+      ),);
 
       return true;
     } catch (e) {
       _updateState(_state.copyWith(
         isSaving: false,
         error: 'Failed to save settings: $e',
-      ));
+      ),);
       return false;
     }
   }
@@ -215,7 +215,7 @@ class AccountSettingsNotifier {
       statusMessage: 'Verifying new password...',
       clearError: true,
       clearSuccess: true,
-    ));
+    ),);
 
     final result = await _connectionService.testConnection(
       host: imapConfig.host,
@@ -230,7 +230,7 @@ class AccountSettingsNotifier {
         isValidatingPassword: false,
         clearStatus: true,
         error: result.errorMessage ?? 'Password validation failed',
-      ));
+      ),);
       return false;
     }
 
@@ -243,14 +243,14 @@ class AccountSettingsNotifier {
         isValidatingPassword: false,
         clearStatus: true,
         successMessage: 'Password updated successfully',
-      ));
+      ),);
       return true;
     } catch (e) {
       _updateState(_state.copyWith(
         isValidatingPassword: false,
         clearStatus: true,
         error: 'Failed to save password: $e',
-      ));
+      ),);
       return false;
     }
   }
@@ -261,7 +261,7 @@ class AccountSettingsNotifier {
     _updateState(_state.copyWith(
       isSaving: true,
       clearError: true,
-    ));
+    ),);
 
     try {
       await _repository.deleteAccount(_state.account!.id);
@@ -271,7 +271,7 @@ class AccountSettingsNotifier {
       _updateState(_state.copyWith(
         isSaving: false,
         error: 'Failed to delete account: $e',
-      ));
+      ),);
       return false;
     }
   }

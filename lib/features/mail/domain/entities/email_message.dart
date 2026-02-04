@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:equatable/equatable.dart';
 
 /// Represents an email address with optional display name.
@@ -46,6 +48,7 @@ class EmailMessage extends Equatable {
     this.inReplyTo,
     this.references = const [],
     this.syncedAt,
+    this.rawSource,
   });
 
   /// Local unique identifier.
@@ -107,6 +110,8 @@ class EmailMessage extends Equatable {
 
   /// When this message was last synced from server.
   final DateTime? syncedAt;
+  /// Raw message source as received from the server (full MIME payload) as bytes.
+  final Uint8List? rawSource;
 
   /// Get a preview of the email body (first 100 chars of text).
   String get preview {
@@ -138,6 +143,7 @@ class EmailMessage extends Equatable {
     String? inReplyTo,
     List<String>? references,
     DateTime? syncedAt,
+    Uint8List? rawSource,
   }) {
     return EmailMessage(
       id: id ?? this.id,
@@ -160,6 +166,7 @@ class EmailMessage extends Equatable {
       inReplyTo: inReplyTo ?? this.inReplyTo,
       references: references ?? this.references,
       syncedAt: syncedAt ?? this.syncedAt,
+      rawSource: rawSource ?? this.rawSource,
     );
   }
 
@@ -185,5 +192,6 @@ class EmailMessage extends Equatable {
         inReplyTo,
         references,
         syncedAt,
+        rawSource,
       ];
 }

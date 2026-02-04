@@ -45,7 +45,7 @@ class ImapConnectionService {
 
     try {
       // Create IMAP client
-      client = ImapClient(isLogEnabled: false);
+      client = ImapClient();
 
       // Connect with timeout
       await client

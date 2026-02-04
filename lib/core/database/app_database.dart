@@ -17,7 +17,7 @@ class AppDatabase {
   static Database? _database;
 
   /// Current database version for migrations.
-  static const int _version = 3;
+  static const int _version = 5;
 
   /// Database file name.
   static const String _databaseName = 'unifydesk.db';
@@ -64,6 +64,29 @@ class AppDatabase {
     if (oldVersion < 3) {
       // Add settings columns to email_accounts table
       await EmailAccountsTable.migrateV1ToV2(db);
+    }
+    if (oldVersion < 4) {
+      // Add raw_source BLOB column to emails table for storing raw MIME payloads
+      try {
+        await db.execute(
+          'ALTER TABLE ${EmailsTable.tableName} ADD COLUMN ${EmailsTable.columnRawSource} BLOB',
+        );
+      } catch (_) {
+        // Column may already exist
+      }
+    }
+    if (oldVersion < 5) {
+      // Add prefetch settings to email_accounts table
+      try {
+        await db.execute(
+          'ALTER TABLE ${EmailAccountsTable.tableName} ADD COLUMN ${EmailAccountsTable.columnPrefetchEnabled} INTEGER DEFAULT 1',
+        );
+      } catch (_) {}
+      try {
+        await db.execute(
+          'ALTER TABLE ${EmailAccountsTable.tableName} ADD COLUMN ${EmailAccountsTable.columnPrefetchCount} INTEGER DEFAULT 3',
+        );
+      } catch (_) {}
     }
   }
 

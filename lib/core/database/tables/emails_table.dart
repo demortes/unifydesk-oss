@@ -28,6 +28,9 @@ class EmailsTable {
   static const String colInReplyTo = 'in_reply_to';
   static const String colReferences = 'email_references'; // JSON array
   static const String colSyncedAt = 'synced_at';
+  static const String columnRawSource = 'raw_source';
+  // Alias for consistency
+  static const String colRawSource = columnRawSource;
 
   /// Create the emails table.
   static Future<void> create(Database db) async {
@@ -45,6 +48,7 @@ class EmailsTable {
         $colSubject TEXT NOT NULL DEFAULT '',
         $colTextBody TEXT,
         $colHtmlBody TEXT,
+        $colRawSource BLOB,
         $colDate INTEGER NOT NULL,
         $colIsRead INTEGER NOT NULL DEFAULT 0,
         $colIsStarred INTEGER NOT NULL DEFAULT 0,

@@ -404,7 +404,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
                 const SizedBox(height: 24),
 
                 // Cache management
-                _SectionHeader(
+                const _SectionHeader(
                   title: 'Cache Management',
                   icon: Icons.cached,
                 ),
@@ -437,7 +437,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
                 const SizedBox(height: 24),
 
                 // Data management
-                _SectionHeader(
+                const _SectionHeader(
                   title: 'Data Management',
                   icon: Icons.folder_delete,
                 ),

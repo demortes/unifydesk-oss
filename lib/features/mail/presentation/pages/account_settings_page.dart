@@ -133,7 +133,7 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
       ),
     );
 
-    if (confirmed == true && mounted) {
+    if ((confirmed ?? false) && mounted) {
       final success = await _notifier.deleteAccount();
       if (success && mounted) {
         Navigator.of(context).pop(true); // Return true to indicate deletion

@@ -21,10 +21,6 @@ dependencies:
   # UI & Design
   cupertino_icons: ^1.0.6
 
-  # State Management
-  flutter_riverpod: ^3.1.0
-  riverpod_annotation: ^4.0.0
-
   # Routing
   go_router: ^17.0.1
 
@@ -73,7 +69,7 @@ dependencies:
   logger: ^2.0.2+1
 
   # HTML & Rich Text
-  flutter_html: ^3.0.0-beta.2
+  flutter_html: 3.0.0
   html: ^0.15.4
 
   # File Handling
@@ -87,6 +83,7 @@ dependencies:
   share_plus: ^12.0.1
   device_info_plus: ^12.3.0
   package_info_plus: ^9.0.0
+  connectivity_plus: ^4.0.2
 
   # Notifications
   flutter_local_notifications: ^20.0.0
@@ -94,6 +91,11 @@ dependencies:
   # Image Handling
   cached_network_image: ^3.3.1
   image_picker: ^1.0.7
+
+  # State Management (keep until full refactoring complete)
+  flutter_riverpod: ^3.2.1
+  riverpod: ^3.2.1
+  state_notifier: ^1.0.0
 
 dev_dependencies:
   flutter_test:
@@ -105,7 +107,8 @@ dev_dependencies:
 
   # Code Generation
   build_runner: ^2.4.8
-  riverpod_generator: ^4.0.0+1
+  # riverpod_generator removed temporarily to avoid analyzer/test version conflicts during build
+  # Add back when codegen is needed and analyzer constraints are resolved.
   freezed: ^3.2.3
   json_serializable: ^6.7.1
 

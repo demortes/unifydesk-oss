@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:enough_mail/enough_mail.dart';
 import 'package:logger/logger.dart';
 import 'package:uuid/uuid.dart';
@@ -427,10 +430,62 @@ class ImapRemoteDataSource {
                 .toList() ??
             [],
         syncedAt: DateTime.now(),
+        // Capture the raw MIME payload when we did a full fetch. Prefer
+        // any raw/source bytes the `MimeMessage` object may expose (different
+        // versions of the MIME parser expose different fields). Use a best-effort
+        // extractor and fall back to `toString()` when nothing else is available.
+        rawSource: fetchFullBody
+            ? (_extractRawSource(message) ?? Uint8List.fromList(utf8.encode(message.toString())))
+            : null,
       );
     } catch (e) {
       _logger.e('Error parsing message: $e');
       return null;
     }
+  }
+
+  /// Best-effort extractor for any raw/source content on `MimeMessage`.
+  ///
+  /// Some MIME parsers attach the original raw bytes/string under different
+  /// property names; attempt a small set of commonly used ones and return the
+  /// first non-null value as a `String`. If a candidate is a `List<int>` it
+  /// will be decoded as UTF-8.
+  Uint8List? _extractRawSource(MimeMessage message) {
+    final dynamic m = message;
+    final candidates = <String>[
+      'raw',
+      'rawMessage',
+      'original',
+      'source',
+      'message',
+      'data',
+      'fullText',
+    ];
+
+    for (final name in candidates) {
+      try {
+        final value = (m as dynamic)[name];
+        if (value == null) continue;
+        if (value is Uint8List) return value;
+        if (value is List<int>) return Uint8List.fromList(value);
+        if (value is Iterable<int>) return Uint8List.fromList(value.toList());
+        if (value is String) return Uint8List.fromList(utf8.encode(value));
+      } catch (_) {
+        // ignore and try next
+      }
+    }
+
+    // Some implementations expose a `raw` getter method instead of an indexable field
+    try {
+      final dynamic maybe = m.raw;
+      if (maybe != null) {
+        if (maybe is Uint8List) return maybe;
+        if (maybe is List<int>) return Uint8List.fromList(maybe);
+        if (maybe is Iterable<int>) return Uint8List.fromList(maybe.toList());
+        if (maybe is String) return Uint8List.fromList(utf8.encode(maybe));
+      }
+    } catch (_) {}
+
+    return null;
   }
 }
