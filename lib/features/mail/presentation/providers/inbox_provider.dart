@@ -7,6 +7,7 @@ import 'package:logger/logger.dart';
 import '../../data/datasources/email_local_datasource.dart';
 import '../../data/datasources/imap_remote_datasource.dart';
 import '../../data/repositories/email_repository_impl.dart';
+import '../../domain/entities/email_attachment.dart';
 import '../../domain/entities/email_message.dart';
 import '../../domain/entities/mailbox.dart';
 import '../../domain/repositories/email_repository.dart';
@@ -969,4 +970,11 @@ final selectedEmailProvider = FutureProvider<EmailMessage?>((ref) async {
     email.uid,
   );
   return fullEmail ?? email;
+});
+
+/// Provider that fetches attachments for the currently selected email.
+final selectedEmailAttachmentsProvider =
+    FutureProvider.family<List<EmailAttachment>, String>((ref, emailId) async {
+  final repository = ref.read(emailRepositoryProvider);
+  return repository.getAttachments(emailId);
 });

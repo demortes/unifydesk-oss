@@ -1,12 +1,16 @@
+import 'dart:typed_data';
+
 import 'package:intl/intl.dart';
 
 import '../../domain/entities/email_account.dart';
+import '../../domain/entities/email_attachment.dart';
 import '../../domain/entities/email_message.dart';
 import '../../domain/entities/mailbox.dart';
 import '../../domain/repositories/account_repository.dart';
 import '../../domain/repositories/email_repository.dart';
 import '../datasources/email_local_datasource.dart';
 import '../datasources/imap_remote_datasource.dart';
+import '../services/attachment_extractor.dart';
 
 /// Implementation of EmailRepository.
 class EmailRepositoryImpl implements EmailRepository {
@@ -154,6 +158,19 @@ class EmailRepositoryImpl implements EmailRepository {
 
     if (email != null) {
       await _localDataSource.upsertEmail(email);
+
+      // Parse and persist attachment metadata from raw source
+      if (email.hasAttachments && email.rawSource != null) {
+        final attachments = AttachmentExtractor.parseAttachmentMetadata(
+          email.id,
+          email.rawSource!,
+        );
+        if (attachments.isNotEmpty) {
+          // Clear old attachments and insert fresh ones
+          await _localDataSource.deleteAttachmentsByEmailId(email.id);
+          await _localDataSource.upsertAttachments(attachments);
+        }
+      }
     }
 
     return email;
@@ -302,6 +319,33 @@ class EmailRepositoryImpl implements EmailRepository {
 
     // Delete locally
     await _localDataSource.deleteEmail(emailId);
+  }
+
+  @override
+  Future<List<EmailAttachment>> getAttachments(String emailId) async {
+    final models = await _localDataSource.getAttachmentsByEmailId(emailId);
+    return models.map((m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<Uint8List?> getAttachmentData(
+    String emailId,
+    String attachmentId,
+  ) async {
+    // Get the attachment record for partIndex
+    final attachments = await _localDataSource.getAttachmentsByEmailId(emailId);
+    final attachment = attachments.where((a) => a.id == attachmentId).firstOrNull;
+    if (attachment == null) return null;
+
+    // Get the email for rawSource
+    final email = await _localDataSource.getEmailById(emailId);
+    if (email == null || email.rawSource == null) return null;
+
+    // Extract binary data from raw MIME source
+    return AttachmentExtractor.extractAttachmentData(
+      email.rawSource!,
+      attachment.partIndex,
+    );
   }
 
   @override

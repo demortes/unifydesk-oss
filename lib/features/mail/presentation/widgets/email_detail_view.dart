@@ -8,6 +8,7 @@ import 'package:logger/logger.dart';
 
 import '../../domain/entities/email_message.dart';
 import '../../../../core/services/app_services.dart';
+import 'attachment_list.dart';
 // unused imports removed
 
 /// Widget to display full email content.
@@ -205,6 +206,9 @@ class EmailDetailView extends StatelessWidget {
             ],
           ),
         ),
+        // Attachments section (between header and body)
+        if (email.hasAttachments)
+          AttachmentList(emailId: email.id),
         // Body content (expanded to fill all remaining space)
         Expanded(
           child: _buildBody(context),
@@ -493,9 +497,11 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
           initialData: InAppWebViewInitialData(data: _htmlContent),
           initialSettings: InAppWebViewSettings(
             javaScriptEnabled: false,
-            transparentBackground: true,
+            transparentBackground: false,
             supportZoom: false,
             disableContextMenu: true,
+            forceDark: ForceDark.ON,
+            algorithmicDarkeningAllowed: true,
           ),
           onWebViewCreated: (controller) {
             if (!_disposed && mounted) {
@@ -531,46 +537,87 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
   }
 
   String _wrapHtmlForWebView(String html) {
-    // Wrap the email HTML in a complete document with responsive styling
+    // Wrap the email HTML in a complete document with forced dark mode.
+    // Uses !important on everything to override inline styles that emails
+    // typically include (e.g. style="background-color:white; color:black").
     return '''
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="color-scheme" content="dark">
   <style>
-    * {
+    :root { color-scheme: dark; }
+
+    *, *::before, *::after {
       box-sizing: border-box;
+      border-color: #444 !important;
     }
-    body {
-      margin: 0;
-      padding: 16px;
+
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #1c1c1e !important;
+      background-color: #1c1c1e !important;
+      color: #e0e0e0 !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       font-size: 14px;
       line-height: 1.5;
-      color: #333;
       word-wrap: break-word;
       overflow-wrap: break-word;
     }
-    img {
-      max-width: 100%;
-      height: auto;
+
+    body { padding: 16px !important; }
+
+    div, p, span, td, th, li, dd, dt, pre, code,
+    h1, h2, h3, h4, h5, h6, section, article, header, footer,
+    nav, main, aside, figure, figcaption, details, summary {
+      background-color: transparent !important;
+      color: #e0e0e0 !important;
     }
-    table {
-      max-width: 100%;
-      border-collapse: collapse;
+
+    table, thead, tbody, tfoot, tr {
+      background-color: transparent !important;
+      color: #e0e0e0 !important;
     }
-    a {
-      color: #1976d2;
-      text-decoration: underline;
+
+    table { max-width: 100%; border-collapse: collapse; }
+    img { max-width: 100%; height: auto; }
+
+    a, a * { color: #82b1ff !important; text-decoration: underline; }
+    b, strong, b *, strong * { color: #f0f0f0 !important; }
+
+    blockquote, blockquote * {
+      color: #aaa !important;
+      background-color: transparent !important;
+      border-left: 3px solid #555 !important;
     }
+    blockquote { margin-left: 8px; padding-left: 12px; }
+
+    hr { border-color: #444 !important; }
+
+    /* Hide tiny spacer elements used in table-based email layouts */
+    td[style*="font-size: 1px"],
+    td[style*="font-size:1px"],
+    div[style*="font-size: 1px"],
+    div[style*="font-size:1px"],
+    span[style*="font-size: 1px"],
+    span[style*="font-size:1px"] {
+      font-size: 0 !important;
+      line-height: 0 !important;
+      height: 0 !important;
+      overflow: hidden !important;
+      mso-hide: all !important;
+    }
+
     .remote-image-blocked {
       padding: 8px;
-      background: #f0f0f0;
-      border: 1px dashed #ccc;
+      background: #2a2a2c !important;
+      border: 1px dashed #555 !important;
       margin: 4px 0;
       text-align: center;
-      color: #666;
+      color: #999 !important;
       font-size: 12px;
     }
   </style>
@@ -759,28 +806,30 @@ $html
     result = result.replaceAll(RegExp(r'<\?xml[^>]*\?>', caseSensitive: false), '');
     logStep('XML declaration removal', beforeXML, result, logContent: true);
 
-    // Remove MS Office conditional comments and their content
+    // Remove MS Office conditional comments.
+    // IMPORTANT: Only remove MSO-specific blocks (<!--[if mso]>...),
+    // NOT non-MSO blocks (<!--[if !mso]>) which contain real content
+    // for normal browsers.
     final beforeMSComments1 = result;
+    // Remove MSO-only blocks: <!--[if mso]>...<![endif]-->
     result = result.replaceAll(
       RegExp(
-        r'<!--\[if[^\]]*\]>.*?<!\[endif\]-->',
+        r'<!--\[if\s+(?!!).*?\]>.*?<!\[endif\]-->',
         caseSensitive: false,
         dotAll: true,
       ),
       '',
     );
-    logStep('MS Office conditional comments (type 1)', beforeMSComments1, result, logContent: true);
-    
-    final beforeMSComments2 = result;
+    logStep('MS Office conditional comments (MSO-only)', beforeMSComments1, result, logContent: true);
+
+    // For non-MSO blocks, strip the comment wrappers but KEEP the content:
+    //   <!--[if !mso]> <!---->  ...content...  <!-- <![endif]-->
+    final beforeNonMso = result;
     result = result.replaceAll(
-      RegExp(
-        r'<!--\[if[^\]]*\]>.*?<!endif-->',
-        caseSensitive: false,
-        dotAll: true,
-      ),
-      '',
-    );
-    logStep('MS Office conditional comments (type 2)', beforeMSComments2, result, logContent: true);
+      RegExp(r'<!--\[if\s+!mso\]>\s*<!---->', caseSensitive: false), '');
+    result = result.replaceAll(
+      RegExp(r'<!--\s*<!\[endif\]-->', caseSensitive: false), '');
+    logStep('Non-MSO comment wrapper removal', beforeNonMso, result);
 
     // Remove style blocks (flutter_html doesn't use them well anyway)
     final beforeStyles = result;
@@ -833,6 +882,28 @@ $html
     result = result.replaceAll(RegExp('mso-[^;:"]+:[^;:"]+;?'), '');
     logStep('MSO style properties removal', beforeMso, result);
 
+    // Strip inline background/color style properties that fight dark mode.
+    // This removes background, background-color, and color from inline styles.
+    final beforeInlineColors = result;
+    result = result.replaceAll(
+      RegExp(r'background-color\s*:\s*[^;\"]+;?', caseSensitive: false), '');
+    // Preserve background images (url(...)) but strip solid-color backgrounds
+    result = result.replaceAll(
+      RegExp(r'(?<!-)background\s*:\s*(?![^;\"]*url\s*\()[^;\"]+;?', caseSensitive: false), '');
+    result = result.replaceAll(
+      RegExp(r'(?<!-)color\s*:\s*[^;\"]+;?', caseSensitive: false), '');
+    logStep('Inline background/color removal', beforeInlineColors, result);
+
+    // Remove bgcolor attributes from HTML elements (tables, tds, etc.)
+    final beforeBgcolor = result;
+    result = result.replaceAll(
+      RegExp(r'\s+bgcolor\s*=\s*"[^"]*"', caseSensitive: false), '');
+    result = result.replaceAll(
+      RegExp(r"\s+bgcolor\s*=\s*'[^']*'", caseSensitive: false), '');
+    result = result.replaceAll(
+      RegExp(r'\s+bgcolor\s*=\s*\S+', caseSensitive: false), '');
+    logStep('bgcolor attribute removal', beforeBgcolor, result);
+
     // Clean up head tag content (keep only title if present)
     final beforeHead = result;
     final headMatches = RegExp('<head[^>]*>.*?</head>', caseSensitive: false, dotAll: true).allMatches(result);
@@ -848,13 +919,50 @@ $html
     );
     logStep('Head tag removal', beforeHead, result, logContent: true);
 
-    // Simplify the html tag
-    final beforeHtmlTag = result;
+    // Remove elements with display:none (preheaders, tracking pixels, etc.)
+    // These often contain invisible Unicode characters (figure spaces,
+    // combining grapheme joiners, soft hyphens) that render as dots or
+    // replacement characters in the WebView.
+    final beforeHidden = result;
     result = result.replaceAll(
-      RegExp('<html[^>]*>', caseSensitive: false),
-      '<html>',
+      RegExp(
+        r'<(td|div|span)[^>]*display\s*:\s*none[^>]*>.*?</\1>',
+        caseSensitive: false,
+        dotAll: true,
+      ),
+      '',
     );
-    logStep('HTML tag simplification', beforeHtmlTag, result);
+    logStep('Hidden element removal', beforeHidden, result);
+
+    // Remove spacer elements: tiny font-size cells containing only &nbsp; or
+    // whitespace. These render as visible dots in WebView dark mode.
+    final beforeSpacers = result;
+    result = result.replaceAll(
+      RegExp(
+        r'<(td|div|span)[^>]*font-size\s*:\s*1px[^>]*>\s*(?:&nbsp;|\s)*\s*</\1>',
+        caseSensitive: false,
+        dotAll: true,
+      ),
+      '',
+    );
+    logStep('Spacer element removal', beforeSpacers, result);
+
+    // Remove <html> and <body> tags entirely (we wrap in our own document).
+    // This prevents nested <body style="background:white"> from overriding
+    // our dark-mode CSS.
+    final beforeHtmlBody = result;
+    result = result.replaceAll(RegExp('<html[^>]*>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp('</html>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp('<body[^>]*>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp('</body>', caseSensitive: false), '');
+    logStep('HTML/body tag removal', beforeHtmlBody, result);
+
+    // Remove remaining HTML comments (non-conditional) that may be left
+    // behind and could confuse the renderer.
+    final beforeComments = result;
+    result = result.replaceAll(
+      RegExp(r'<!--.*?-->', dotAll: true), '');
+    logStep('HTML comment removal', beforeComments, result);
 
     final finalResult = result.trim();
     

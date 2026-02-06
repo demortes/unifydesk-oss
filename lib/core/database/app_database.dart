@@ -1,6 +1,7 @@
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'tables/attachments_table.dart';
 import 'tables/email_accounts_table.dart';
 import 'tables/emails_table.dart';
 import 'tables/mailboxes_table.dart';
@@ -17,7 +18,7 @@ class AppDatabase {
   static Database? _database;
 
   /// Current database version for migrations.
-  static const int _version = 5;
+  static const int _version = 6;
 
   /// Database file name.
   static const String _databaseName = 'unifydesk.db';
@@ -53,6 +54,7 @@ class AppDatabase {
     await EmailAccountsTable.create(db);
     await MailboxesTable.create(db);
     await EmailsTable.create(db);
+    await AttachmentsTable.create(db);
   }
 
   /// Handle database migrations.
@@ -87,6 +89,10 @@ class AppDatabase {
           'ALTER TABLE ${EmailAccountsTable.tableName} ADD COLUMN ${EmailAccountsTable.columnPrefetchCount} INTEGER DEFAULT 3',
         );
       } catch (_) {}
+    }
+    if (oldVersion < 6) {
+      // Add attachments table
+      await AttachmentsTable.create(db);
     }
   }
 

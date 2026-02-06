@@ -1,8 +1,10 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/database/tables/attachments_table.dart';
 import '../../../../core/database/tables/emails_table.dart';
 import '../../../../core/database/tables/mailboxes_table.dart';
+import '../models/email_attachment_model.dart';
 import '../models/email_message_model.dart';
 import '../models/mailbox_model.dart';
 
@@ -173,6 +175,49 @@ class EmailLocalDataSource {
         AND ${EmailsTable.colUid} IN ($placeholders)
       ''',
       whereArgs: [accountId, mailboxName, ...uids],
+    );
+  }
+
+  // ============ Attachment Operations ============
+
+  /// Get attachments for a specific email.
+  Future<List<EmailAttachmentModel>> getAttachmentsByEmailId(
+    String emailId,
+  ) async {
+    final db = await _database.database;
+    final results = await db.query(
+      AttachmentsTable.tableName,
+      where: '${AttachmentsTable.colEmailId} = ?',
+      whereArgs: [emailId],
+    );
+    return results.map(EmailAttachmentModel.fromMap).toList();
+  }
+
+  /// Insert or replace attachments for an email.
+  Future<void> upsertAttachments(List<EmailAttachmentModel> attachments) async {
+    if (attachments.isEmpty) return;
+
+    final db = await _database.database;
+    final batch = db.batch();
+
+    for (final attachment in attachments) {
+      batch.insert(
+        AttachmentsTable.tableName,
+        attachment.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit(noResult: true);
+  }
+
+  /// Delete all attachments for an email.
+  Future<void> deleteAttachmentsByEmailId(String emailId) async {
+    final db = await _database.database;
+    await db.delete(
+      AttachmentsTable.tableName,
+      where: '${AttachmentsTable.colEmailId} = ?',
+      whereArgs: [emailId],
     );
   }
 

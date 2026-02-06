@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import '../entities/email_attachment.dart';
 import '../entities/email_message.dart';
 import '../entities/mailbox.dart';
 
@@ -72,6 +75,12 @@ abstract class EmailRepository {
     int uid, {
     bool permanent = false,
   });
+
+  /// Get attachments for an email.
+  Future<List<EmailAttachment>> getAttachments(String emailId);
+
+  /// Get attachment binary data, extracted on-demand from raw MIME source.
+  Future<Uint8List?> getAttachmentData(String emailId, String attachmentId);
 
   /// Get unread count for a mailbox.
   Future<int> getUnreadCount(String accountId, String mailboxPath);
