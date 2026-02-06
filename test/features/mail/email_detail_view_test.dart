@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_html/flutter_html.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -39,8 +39,8 @@ void main() {
     // Allow any async layout to settle
     await tester.pumpAndSettle();
 
-    // The Html widget from flutter_html should be present to render the HTML
-    expect(find.byType(Html), findsOneWidget);
+    // The InAppWebView should be present to render the HTML
+    expect(find.byType(InAppWebView), findsOneWidget);
 
     // Ensure we do not show the empty-state placeholder
     expect(find.text('No content available'), findsNothing);

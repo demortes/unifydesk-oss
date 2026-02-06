@@ -69,7 +69,7 @@ dependencies:
   logger: ^2.0.2+1
 
   # HTML & Rich Text
-  flutter_html: 3.0.0
+  flutter_inappwebview: ^6.1.5
   html: ^0.15.4
 
   # File Handling

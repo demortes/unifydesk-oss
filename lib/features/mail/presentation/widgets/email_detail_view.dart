@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:logger/logger.dart';
@@ -381,7 +381,7 @@ class EmailDetailView extends StatelessWidget {
   }
 }
 
-/// Widget that tries to render HTML, falling back to plain text if empty.
+/// Widget that tries to render HTML using WebView, falling back to plain text if empty.
 class _HtmlBodyView extends StatefulWidget {
   const _HtmlBodyView({
     required this.html,
@@ -399,23 +399,60 @@ class _HtmlBodyView extends StatefulWidget {
 
 class _HtmlBodyViewState extends State<_HtmlBodyView> {
   bool _loadedOnce = false;
+  InAppWebViewController? _controller;
+  bool _disposed = false;
+  bool _isPlainTextFallback = false;
+  double _contentHeight = 400; // Initial height
   static final Logger _logger = Logger();
+  String _htmlContent = '';
+
+  // Stable key for the InAppWebView to prevent recreation across builds
+  final _webViewKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     AppServices.imageBlockingService.addListener(_onServiceChanged);
     AppServices.imageAllowlistService.addListener(_onServiceChanged);
+    _prepareContent();
   }
 
   void _onServiceChanged() {
-    if (mounted) {
+    if (mounted && !_disposed) {
+      _prepareContent();
+      _loadContent();
       setState(() {});
+    }
+  }
+
+  void _prepareContent() {
+    final blockRemote = AppServices.imageBlockingService.blockRemoteImages;
+    final allowlist = AppServices.imageAllowlistService.allowlist;
+    final senderAllowed = allowlist.contains(widget.senderAddress.toLowerCase());
+    final effectiveBlock = blockRemote && !senderAllowed && !_loadedOnce;
+
+    final cleanedHtml = _cleanEmailHtml(widget.html);
+
+    // Check if we should fall back to plain text
+    _isPlainTextFallback = cleanedHtml.trim().isEmpty || cleanedHtml.trim() == '<html>';
+
+    final processedHtml = effectiveBlock ? _stripNetworkImages(cleanedHtml) : cleanedHtml;
+    _htmlContent = _wrapHtmlForWebView(processedHtml);
+
+    _logger.d('Prepared HTML for WebView (${_htmlContent.length} chars)');
+  }
+
+  void _loadContent() {
+    if (_controller != null && mounted && !_disposed) {
+      _logger.d('Loading HTML into WebView');
+      _controller!.loadData(data: _htmlContent);
     }
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    _controller = null;
     AppServices.imageBlockingService.removeListener(_onServiceChanged);
     AppServices.imageAllowlistService.removeListener(_onServiceChanged);
     super.dispose();
@@ -429,31 +466,17 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
     final senderAllowed = allowlist.contains(widget.senderAddress.toLowerCase());
 
     try {
-      // Clean up email HTML for flutter_html compatibility
-      final cleanedHtml = _cleanEmailHtml(widget.html);
-      
-      _logger.d('Email HTML processing:');
-      _logger.d('Original HTML length: ${widget.html.length}');
-      _logger.d('Cleaned HTML length: ${cleanedHtml.length}');
-      _logger.d('Sender address: ${widget.senderAddress}');
-      _logger.d('Remote images blocked: $blockRemote');
-      _logger.d('Sender allowed: $senderAllowed');
-
-      // If cleaning removed most content, decide what to show:
-      // - If cleaned HTML is empty but we have plain-text fallback, show it.
-      // - If both are empty, show a small 'No content available' message.
-      if (cleanedHtml.trim().isEmpty || cleanedHtml.trim() == '<html>') {
+      // If cleaning removed most content, fallback to plain text
+      if (_isPlainTextFallback) {
         _logger.w('Cleaned HTML is empty, falling back to plain text');
-        
+
         if (widget.fallbackText.isNotEmpty) {
-          _logger.i('Using fallback text (${widget.fallbackText.length} chars)');
           return SelectableText(
             widget.fallbackText,
             style: theme.textTheme.bodyMedium,
           );
         }
 
-        _logger.w('No content available for display');
         return Text(
           'No content available',
           style: theme.textTheme.bodyMedium?.copyWith(
@@ -463,104 +486,110 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
         );
       }
 
-      return _renderHtmlContent(context, cleanedHtml, blockRemote, senderAllowed);
+      final effectiveBlock = blockRemote && !senderAllowed && !_loadedOnce;
+
+      // Use a stable key so the InAppWebView is NOT recreated across rebuilds
+      final webViewWidget = SizedBox(
+        height: _contentHeight,
+        child: InAppWebView(
+          key: _webViewKey,
+          initialData: InAppWebViewInitialData(data: _htmlContent),
+          initialSettings: InAppWebViewSettings(
+            javaScriptEnabled: false,
+            transparentBackground: true,
+            supportZoom: false,
+            disableContextMenu: true,
+          ),
+          onWebViewCreated: (controller) {
+            if (!_disposed && mounted) {
+              _controller = controller;
+            }
+          },
+          onLoadStop: (controller, url) {
+            _logger.d('WebView finished loading');
+          },
+          shouldOverrideUrlLoading: (controller, navigationAction) async {
+            final url = navigationAction.request.url;
+            if (url != null) {
+              final urlString = url.toString();
+              if (urlString.startsWith('http://') ||
+                  urlString.startsWith('https://')) {
+                _launchUrl(urlString);
+                return NavigationActionPolicy.CANCEL;
+              }
+            }
+            return NavigationActionPolicy.CANCEL;
+          },
+        ),
+      );
+
+      if (effectiveBlock) {
+        return _buildImageBlockingBanner(context, webViewWidget);
+      }
+
+      return webViewWidget;
     } catch (e, stackTrace) {
       _logger.e('Error in HTML body view build', error: e, stackTrace: stackTrace);
-      
-      // Fallback to plain text on any error
       return _buildErrorFallback(context, e);
     }
   }
 
-  Widget _renderHtmlContent(BuildContext context, String cleanedHtml, bool blockRemote, bool senderAllowed) {
-    try {
-      final effectiveBlock = blockRemote && !senderAllowed && !_loadedOnce;
-      _logger.d('Effective image blocking: $effectiveBlock');
-
-      // If blocking is active, strip network images from the HTML to avoid
-      // any automatic network loads and show a small banner with controls.
-      final renderHtml = effectiveBlock ? _stripNetworkImages(cleanedHtml) : cleanedHtml;
-      
-      if (effectiveBlock) {
-        final imageCount = RegExp("<img\\b[^>]*\\bsrc=[\"']([^\"'>]+)[\"'][^>]*>", caseSensitive: false)
-          .allMatches(cleanedHtml).length;
-        _logger.i('Blocked $imageCount remote images from display');
-      }
-
-      _logger.d('About to render HTML content:');
-      final snippet = renderHtml.length > 200 ? '${renderHtml.substring(0, 200)}...' : renderHtml;
-      _logger.t('HTML to render (first 200 chars): $snippet');
-
-      final htmlWidget = _createHtmlWidget(context, renderHtml);
-
-      if (effectiveBlock) {
-        return _buildImageBlockingBanner(context, htmlWidget);
-      }
-
-      return htmlWidget;
-    } catch (e, stackTrace) {
-      _logger.e('Error rendering HTML content', error: e, stackTrace: stackTrace);
-      return _buildErrorFallback(context, e);
+  String _wrapHtmlForWebView(String html) {
+    // Wrap the email HTML in a complete document with responsive styling
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <style>
+    * {
+      box-sizing: border-box;
     }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #333;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+    table {
+      max-width: 100%;
+      border-collapse: collapse;
+    }
+    a {
+      color: #1976d2;
+      text-decoration: underline;
+    }
+    .remote-image-blocked {
+      padding: 8px;
+      background: #f0f0f0;
+      border: 1px dashed #ccc;
+      margin: 4px 0;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+$html
+</body>
+</html>
+''';
   }
 
-  Widget _createHtmlWidget(BuildContext context, String html) {
-    final theme = Theme.of(context);
-    
-    try {
-      _logger.d('Creating Html widget with content length: ${html.length}');
-      
-      // Analyze HTML structure for debugging
-      final hasImages = html.toLowerCase().contains('<img');
-      final hasTables = html.toLowerCase().contains('<table');
-      final hasStyles = html.toLowerCase().contains('style=');
-      
-      _logger.d('HTML structure analysis: images=$hasImages, tables=$hasTables, inlineStyles=$hasStyles');
-      
-      final htmlWidget = Html(
-        data: html,
-        onLinkTap: (url, _, __) => _launchUrl(url),
-        style: {
-          '*': Style(
-            color: theme.textTheme.bodyMedium?.color,
-            fontSize: FontSize(14),
-          ),
-          'body': Style(
-            margin: Margins.zero,
-            padding: HtmlPaddings.zero,
-          ),
-          'html': Style(
-            margin: Margins.zero,
-            padding: HtmlPaddings.zero,
-          ),
-          'a': Style(
-            color: theme.colorScheme.primary,
-            textDecoration: TextDecoration.underline,
-          ),
-          'p': Style(
-            margin: Margins.only(bottom: 8),
-          ),
-          'td': Style(
-            padding: HtmlPaddings.all(4),
-          ),
-          'img': Style(
-            width: Width(100, Unit.percent),
-          ),
-        },
-      );
-      
-      _logger.d('Html widget created successfully');
-      return htmlWidget;
-    } catch (e, stackTrace) {
-      _logger.e('Error creating Html widget', error: e, stackTrace: stackTrace);
-      _logger.e('Problematic HTML content: ${html.length > 500 ? '${html.substring(0, 500)}...' : html}');
-      rethrow;
-    }
-  }
 
-  Widget _buildImageBlockingBanner(BuildContext context, Widget htmlWidget) {
+  Widget _buildImageBlockingBanner(BuildContext context, Widget webViewWidget) {
     final theme = Theme.of(context);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -569,7 +598,8 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
           color: theme.colorScheme.surfaceContainerHighest,
           child: Row(
             children: [
-              Icon(Icons.image_not_supported, color: theme.colorScheme.onSurfaceVariant),
+              Icon(Icons.image_not_supported,
+                  color: theme.colorScheme.onSurfaceVariant),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -579,19 +609,26 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
               ),
               TextButton(
                 onPressed: () {
-                  _logger.i('User chose to load images once for ${widget.senderAddress}');
+                  _logger.i(
+                      'User chose to load images once for ${widget.senderAddress}');
                   setState(() {
                     _loadedOnce = true;
+                    _prepareContent();
+                    _loadContent();
                   });
                 },
                 child: const Text('Load once'),
               ),
               TextButton(
                 onPressed: () {
-                  _logger.i('User chose to always allow images for ${widget.senderAddress}');
-                  AppServices.imageAllowlistService.allow(widget.senderAddress);
+                  _logger.i(
+                      'User chose to always allow images for ${widget.senderAddress}');
+                  AppServices.imageAllowlistService
+                      .allow(widget.senderAddress);
                   setState(() {
                     _loadedOnce = true;
+                    _prepareContent();
+                    _loadContent();
                   });
                 },
                 child: const Text('Always load for this sender'),
@@ -600,7 +637,7 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
           ),
         ),
         const SizedBox(height: 8),
-        htmlWidget,
+        webViewWidget,
       ],
     );
   }
@@ -673,11 +710,18 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
     );
   }
 
+  /// Safely extract a substring preview, clamping the end index.
+  String _safeSubstring(String? text, int maxLength) {
+    if (text == null || text.isEmpty) return '';
+    if (text.length <= maxLength) return text;
+    return '${text.substring(0, maxLength)}...';
+  }
+
   /// Clean email HTML to make it compatible with flutter_html.
   String _cleanEmailHtml(String html) {
     _logger.d('Starting HTML cleaning process');
     _logger.d('Original HTML length: ${html.length}');
-    _logger.v('Original HTML preview (first 300 chars): ${html.length > 300 ? '${html.substring(0, 300)}...' : html}');
+    _logger.v('Original HTML preview (first 300 chars): ${_safeSubstring(html, 300)}');
     
     var result = html;
     var stepCount = 0;
@@ -696,7 +740,7 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
           // Find what was actually removed by comparing strings
           final removedContent = _findRemovedContent(before, after);
           if (removedContent.isNotEmpty) {
-            _logger.t('  Content removed: ${removedContent.length > 200 ? '${removedContent.substring(0, 200)}...' : removedContent}');
+            _logger.t('  Content removed: ${_safeSubstring(removedContent, 200)}');
           }
         }
       }
@@ -748,7 +792,7 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
     if (styleMatches.isNotEmpty) {
       _logger.d('Found ${styleMatches.length} style blocks to remove');
       for (final match in styleMatches) {
-        _logger.t('Removing style block: ${match.group(0)?.substring(0, 100)}...');
+        _logger.t('Removing style block: ${_safeSubstring(match.group(0), 100)}');
       }
     }
     result = result.replaceAll(
@@ -799,7 +843,7 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
     if (headMatches.isNotEmpty) {
       _logger.d('Found ${headMatches.length} head sections to remove');
       for (final match in headMatches) {
-        _logger.t('Removing head section: ${match.group(0)?.substring(0, 200)}...');
+        _logger.t('Removing head section: ${_safeSubstring(match.group(0), 200)}');
       }
     }
     result = result.replaceAll(
