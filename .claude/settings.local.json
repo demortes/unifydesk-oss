@@ -18,7 +18,8 @@
       "Bash(start \"\" \"build\\\\windows\\\\x64\\\\runner\\\\Release\\\\unifydesk.exe\")",
       "Bash(start \"\" \"X:\\\\repos\\\\oss-communication\\\\build\\\\windows\\\\x64\\\\runner\\\\Release\\\\unifydesk.exe\")",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

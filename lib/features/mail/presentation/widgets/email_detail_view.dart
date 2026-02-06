@@ -130,85 +130,84 @@ class EmailDetailView extends StatelessWidget {
             ],
           ),
         ),
-        // Email content
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Subject
-                Text(
-                  email.subject.isEmpty ? '(No Subject)' : email.subject,
-                  style: theme.textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 16),
-                // Sender info
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: colorScheme.primaryContainer,
-                      child: Text(
-                        email.from.display[0].toUpperCase(),
-                        style: TextStyle(
-                          color: colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold,
-                        ),
+        // Email header (fixed, not scrollable)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Subject
+              Text(
+                email.subject.isEmpty ? '(No Subject)' : email.subject,
+                style: theme.textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 16),
+              // Sender info
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    backgroundColor: colorScheme.primaryContainer,
+                    child: Text(
+                      email.from.display[0].toUpperCase(),
+                      style: TextStyle(
+                        color: colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  email.from.display,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                email.from.display,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              Text(
-                                _formatFullDate(email.date),
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'To: ${_formatRecipients(email.to)}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
                             ),
-                          ),
-                          if (email.cc.isNotEmpty) ...[
-                            const SizedBox(height: 2),
                             Text(
-                              'Cc: ${_formatRecipients(email.cc)}',
+                              _formatFullDate(email.date),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'To: ${_formatRecipients(email.to)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        if (email.cc.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Cc: ${_formatRecipients(email.cc)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ],
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 16),
-                // Body content
-                _buildBody(context),
-              ],
-            ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+            ],
           ),
+        ),
+        // Body content (expanded to fill all remaining space)
+        Expanded(
+          child: _buildBody(context),
         ),
       ],
     );
@@ -229,31 +228,26 @@ class EmailDetailView extends StatelessWidget {
       );
     }
 
-    // Fall back to plain text
+    // Fall back to plain text (scrollable since it's inside Expanded)
     if (email.textBody != null && email.textBody!.isNotEmpty) {
-      return SelectableText(
-        email.textBody!,
-        style: Theme.of(context).textTheme.bodyMedium,
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: SelectableText(
+          email.textBody!,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
       );
     }
 
-    // No content - show debug info
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'No content available',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontStyle: FontStyle.italic,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Debug: htmlBody=${email.htmlBody?.length ?? "null"}, textBody=${email.textBody?.length ?? "null"}',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
+    // No content
+    return Center(
+      child: Text(
+        'No content available',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontStyle: FontStyle.italic,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+      ),
     );
   }
 
@@ -402,7 +396,6 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
   InAppWebViewController? _controller;
   bool _disposed = false;
   bool _isPlainTextFallback = false;
-  double _contentHeight = 400; // Initial height
   static final Logger _logger = Logger();
   String _htmlContent = '';
 
@@ -471,27 +464,31 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
         _logger.w('Cleaned HTML is empty, falling back to plain text');
 
         if (widget.fallbackText.isNotEmpty) {
-          return SelectableText(
-            widget.fallbackText,
-            style: theme.textTheme.bodyMedium,
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: SelectableText(
+              widget.fallbackText,
+              style: theme.textTheme.bodyMedium,
+            ),
           );
         }
 
-        return Text(
-          'No content available',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontStyle: FontStyle.italic,
-            color: theme.colorScheme.onSurfaceVariant,
+        return Center(
+          child: Text(
+            'No content available',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontStyle: FontStyle.italic,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         );
       }
 
       final effectiveBlock = blockRemote && !senderAllowed && !_loadedOnce;
 
-      // Use a stable key so the InAppWebView is NOT recreated across rebuilds
-      final webViewWidget = SizedBox(
-        height: _contentHeight,
-        child: InAppWebView(
+      // Use a stable key so the InAppWebView is NOT recreated across rebuilds.
+      // No fixed height — the parent Expanded provides the constraints.
+      final webViewWidget = InAppWebView(
           key: _webViewKey,
           initialData: InAppWebViewInitialData(data: _htmlContent),
           initialSettings: InAppWebViewSettings(
@@ -520,7 +517,6 @@ class _HtmlBodyViewState extends State<_HtmlBodyView> {
             }
             return NavigationActionPolicy.CANCEL;
           },
-        ),
       );
 
       if (effectiveBlock) {
@@ -637,7 +633,7 @@ $html
           ),
         ),
         const SizedBox(height: 8),
-        webViewWidget,
+        Expanded(child: webViewWidget),
       ],
     );
   }
